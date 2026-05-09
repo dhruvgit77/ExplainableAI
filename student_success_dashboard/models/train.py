@@ -5,12 +5,12 @@ import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score
+from imblearn.over_sampling import SMOTE
 
 def train_models():
     data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'student_data.csv')
@@ -40,25 +40,64 @@ def train_models():
     X_train_processed = preprocessor.fit_transform(X_train)
     X_test_processed = preprocessor.transform(X_test)
     
+    # Apply SMOTE to training data only
+    smote = SMOTE(random_state=42)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train_processed, y_train)
+    
     feature_names = numeric_features + list(preprocessor.named_transformers_['cat'].get_feature_names_out(categorical_features))
     
-    # Define models
-    models = {
-        'Decision Tree': DecisionTreeClassifier(max_depth=5, random_state=42),
-        'SVM': SVC(probability=True, random_state=42),
-        'Neural Network': MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=500, random_state=42),
+    # Define base models
+    base_models = {
+        'Random Forest': RandomForestClassifier(class_weight='balanced', random_state=42),
+        'SVM': SVC(probability=True, class_weight='balanced', random_state=42),
+        'Neural Network': MLPClassifier(max_iter=1000, random_state=42),
         'XGBoost': XGBClassifier(eval_metric='mlogloss', random_state=42)
     }
     
+    # Define hyperparameter grids for RandomizedSearchCV
+    param_grids = {
+        'Random Forest': {
+            'n_estimators': [100, 200, 300, 400],
+            'max_depth': [None, 10, 15, 20],
+            'min_samples_split': [2, 5, 10]
+        },
+        'SVM': {
+            'C': [0.1, 1, 1.5, 10],
+            'kernel': ['rbf', 'linear'],
+            'gamma': ['scale', 'auto']
+        },
+        'Neural Network': {
+            'hidden_layer_sizes': [(64,), (128, 64), (128, 64, 32)],
+            'alpha': [0.0001, 0.001, 0.01],
+            'learning_rate_init': [0.001, 0.01]
+        },
+        'XGBoost': {
+            'n_estimators': [100, 200, 300, 400],
+            'learning_rate': [0.01, 0.05, 0.1, 0.2],
+            'max_depth': [3, 5, 8, 10],
+            'subsample': [0.6, 0.8, 1.0],
+            'colsample_bytree': [0.6, 0.8, 1.0]
+        }
+    }
+    
+    from sklearn.model_selection import RandomizedSearchCV
+    
     trained_models = {}
     
-    for name, model in models.items():
-        print(f"Training {name}...")
-        model.fit(X_train_processed, y_train)
-        y_pred = model.predict(X_test_processed)
+    for name, model in base_models.items():
+        print(f"Tuning and training {name} on balanced data...", flush=True)
+        # Use fewer iterations for slower models
+        n_iterations = 3 if name in ['SVM', 'Neural Network'] else 10
+        random_search = RandomizedSearchCV(model, param_distributions=param_grids[name], 
+                                           n_iter=n_iterations, cv=3, scoring='accuracy', n_jobs=-1, random_state=42)
+        random_search.fit(X_train_resampled, y_train_resampled)
+        
+        best_model = random_search.best_estimator_
+        y_pred = best_model.predict(X_test_processed)
         acc = accuracy_score(y_test, y_pred)
-        print(f"{name} Accuracy: {acc:.4f}")
-        trained_models[name] = model
+        print(f"Best params for {name}: {random_search.best_params_}", flush=True)
+        print(f"{name} Accuracy: {acc:.4f}", flush=True)
+        trained_models[name] = best_model
         
     # Save models, preprocessor, and feature names
     output_dir = os.path.dirname(__file__)
