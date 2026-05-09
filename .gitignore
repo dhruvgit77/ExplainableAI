@@ -3,3 +3,5 @@ dist/
 .env
 __pycache__/
 *.pyc
+archive(3).zip
+archive_data/
