@@ -6,6 +6,7 @@ router = APIRouter(prefix="/api/xai", tags=["Explainability"])
 
 
 class LocalRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
     student_index: int
     model_name: str = "XGBoost"
 

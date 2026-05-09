@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import Plot from 'react-plotly.js';
+import PlotObj from 'react-plotly.js';
 import { api } from '../api/client';
 import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
+const Plot = PlotObj.default || PlotObj;
 const defaults = {
   gender: 'Male',
   region: 'Urban',

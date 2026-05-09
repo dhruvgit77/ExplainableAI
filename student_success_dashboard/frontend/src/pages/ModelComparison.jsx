@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import Plot from 'react-plotly.js';
+import PlotObj from 'react-plotly.js';
 import { api } from '../api/client';
 import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const PALETTE = ['#8B5CF6', '#A78BFA', '#6D28D9', '#DDD6FE'];
+const Plot = PlotObj.default || PlotObj;
 
 export default function ModelComparison() {
   const [data, setData] = useState(null);
