@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PlotObj from 'react-plotly.js';
+import gsap from 'gsap';
 import { api } from '../api/client';
 import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -8,97 +9,135 @@ const Plot = PlotObj.default || PlotObj;
 
 export default function Explainability() {
   const [globalShap, setGlobalShap] = useState(null);
+  const [dependence, setDependence] = useState(null);
   const [localShap, setLocalShap] = useState(null);
   const [localLime, setLocalLime] = useState(null);
   const [studentIndex, setStudentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [localLoading, setLocalLoading] = useState(false);
+  const globalRef = useRef(null);
 
   useEffect(() => {
-    api.getShapGlobal()
-      .then(setGlobalShap)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    async function load() {
+      try {
+        const [g, d] = await Promise.all([
+          api.getShapGlobal(),
+          api.getShapDependence(),
+        ]);
+        setGlobalShap(g);
+        setDependence(d);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    }
+    load();
   }, []);
 
   useEffect(() => {
-    loadLocalExplanations(studentIndex);
-  }, [studentIndex]);
+    if (!globalShap || !globalRef.current) return;
+    gsap.fromTo(
+      globalRef.current.querySelectorAll('.gsap-fade'),
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 0.6, stagger: 0.1, ease: 'power3.out' }
+    );
+  }, [globalShap]);
+
+  useEffect(() => { loadLocalExplanations(studentIndex); }, [studentIndex]);
 
   async function loadLocalExplanations(idx) {
     setLocalLoading(true);
     try {
-      const [shap, lime] = await Promise.all([
-        api.getShapLocal(idx),
-        api.getLimeLocal(idx),
-      ]);
-      setLocalShap(shap);
-      setLocalLime(lime);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLocalLoading(false);
-    }
+      const [shap, lime] = await Promise.all([api.getShapLocal(idx), api.getLimeLocal(idx)]);
+      setLocalShap(shap); setLocalLime(lime);
+    } catch (e) { console.error(e); }
+    finally { setLocalLoading(false); }
   }
 
   if (loading) return <LoadingSpinner text="Computing SHAP values..." />;
 
   return (
-    <div>
+    <div ref={globalRef}>
       <div className="page-header">
         <h1>Model Explainability</h1>
-        <p>Understand how and why the model makes its decisions using SHAP and LIME.</p>
+        <p>Understand which Indian academic features drive predictions using SHAP and LIME.</p>
       </div>
 
-      <div className="info-box section">
-        Machine Learning models are often "black boxes". <strong>Explainable AI (XAI)</strong> techniques
-        like SHAP and LIME help us understand which features drive predictions and by how much.
+      <div className="info-box section gsap-fade">
+        <strong>Explainable AI (XAI)</strong> reveals how features like CGPA, board type, coaching status,
+        and regional factors influence the model's decisions — critical for fair, transparent education policy.
       </div>
 
-      {/* Global SHAP */}
-      <h3 className="section-title">Global Interpretability (SHAP)</h3>
-      <p style={{ marginBottom: 16, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-        What features drive the model's predictions the most across all students?
-      </p>
-
+      {/* Global SHAP Feature Importance */}
+      <h3 className="section-title gsap-fade">Global Feature Importance (SHAP)</h3>
       {globalShap && (
-        <GlassCard className="section">
+        <GlassCard className="section gsap-fade">
           <Plot
-            data={[
-              {
-                y: [...globalShap.features].reverse(),
-                x: [...globalShap.importance].reverse(),
-                type: 'bar',
-                orientation: 'h',
-                marker: {
-                  color: [...globalShap.importance].reverse().map((v, i, arr) => {
-                    const ratio = v / Math.max(...arr);
-                    return `rgba(139, 92, 246, ${0.3 + ratio * 0.7})`;
-                  }),
-                },
-              },
-            ]}
+            data={[{
+              y: [...globalShap.features].reverse(),
+              x: [...globalShap.importance].reverse(),
+              type: 'bar', orientation: 'h',
+              marker: { color: [...globalShap.importance].reverse().map((v, i, arr) => {
+                const ratio = v / Math.max(...arr);
+                return `rgba(139, 92, 246, ${0.3 + ratio * 0.7})`;
+              }) },
+            }]}
             layout={{
-              margin: { t: 10, b: 40, l: 180, r: 30 },
-              paper_bgcolor: 'rgba(0,0,0,0)',
-              plot_bgcolor: 'rgba(0,0,0,0)',
+              margin: { t: 10, b: 40, l: 200, r: 30 },
+              paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
               font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 12 },
               xaxis: { title: 'Mean |SHAP Value|', gridcolor: '#E2E8F0' },
-              yaxis: { automargin: true },
-              height: 420,
+              yaxis: { automargin: true }, height: 450,
             }}
-            config={{ displayModeBar: false, responsive: true }}
-            style={{ width: '100%' }}
+            config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
           />
         </GlassCard>
       )}
 
+      {/* SHAP Dependence Plots */}
+      {dependence && dependence.length > 0 && (
+        <>
+          <div className="divider" />
+          <h3 className="section-title gsap-fade">SHAP Dependence Plots</h3>
+          <p className="gsap-fade" style={{ marginBottom: 16, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+            How each feature's value relates to its impact on the prediction. Each dot is one student.
+          </p>
+          <div className="grid-3 section">
+            {dependence.map((dep) => (
+              <GlassCard key={dep.feature} title={dep.feature.replace(/_/g, ' ')} className="gsap-fade">
+                <Plot
+                  data={[{
+                    x: dep.feature_values,
+                    y: dep.shap_values,
+                    type: 'scatter', mode: 'markers',
+                    marker: {
+                      size: 4, opacity: 0.6,
+                      color: dep.shap_values,
+                      colorscale: [[0, '#94A3B8'], [0.5, '#A78BFA'], [1, '#6D28D9']],
+                      showscale: false,
+                    },
+                  }]}
+                  layout={{
+                    margin: { t: 10, b: 40, l: 50, r: 10 },
+                    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 10 },
+                    xaxis: { title: dep.feature.replace(/_/g, ' '), gridcolor: '#E2E8F0' },
+                    yaxis: { title: 'SHAP Value', gridcolor: '#E2E8F0', zeroline: true, zerolinecolor: '#CBD5E1' },
+                    height: 240,
+                    shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 0, y1: 0, line: { color: '#CBD5E1', dash: 'dot', width: 1 } }],
+                  }}
+                  config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
+                />
+              </GlassCard>
+            ))}
+          </div>
+        </>
+      )}
+
       <div className="divider" />
 
-      {/* Local Section */}
+      {/* Local Explanations */}
       <h3 className="section-title">Local Interpretability</h3>
       <p style={{ marginBottom: 16, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-        Analyze an individual student to understand their specific prediction.
+        Analyze an individual student's prediction factors.
       </p>
 
       <div style={{ marginBottom: 24 }}>
@@ -107,13 +146,8 @@ export default function Explainability() {
             <span className="form-label">Student Index</span>
             <span className="slider-value">{studentIndex}</span>
           </div>
-          <input
-            type="range"
-            min={0}
-            max={399}
-            value={studentIndex}
-            onChange={(e) => setStudentIndex(Number(e.target.value))}
-          />
+          <input type="range" min={0} max={999} value={studentIndex}
+            onChange={(e) => setStudentIndex(Number(e.target.value))} />
         </div>
       </div>
 
@@ -121,7 +155,6 @@ export default function Explainability() {
         <LoadingSpinner text="Generating explanations..." />
       ) : (
         <div className="grid-2 section">
-          {/* Local SHAP Waterfall */}
           {localShap && (
             <GlassCard>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -131,35 +164,16 @@ export default function Explainability() {
                 </span>
               </div>
               <Plot
-                data={[
-                  {
-                    y: localShap.features,
-                    x: localShap.shap_values,
-                    type: 'bar',
-                    orientation: 'h',
-                    marker: {
-                      color: localShap.shap_values.map((v) =>
-                        v >= 0 ? '#8B5CF6' : '#9CA3AF'
-                      ),
-                    },
-                  },
-                ]}
-                layout={{
-                  margin: { t: 10, b: 40, l: 180, r: 20 },
-                  paper_bgcolor: 'rgba(0,0,0,0)',
-                  plot_bgcolor: 'rgba(0,0,0,0)',
+                data={[{ y: localShap.features, x: localShap.shap_values, type: 'bar', orientation: 'h',
+                  marker: { color: localShap.shap_values.map((v) => v >= 0 ? '#8B5CF6' : '#9CA3AF') } }]}
+                layout={{ margin: { t: 10, b: 40, l: 200, r: 20 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                   font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 11 },
                   xaxis: { title: 'SHAP Value', gridcolor: '#E2E8F0', zeroline: true, zerolinecolor: '#CBD5E1' },
-                  yaxis: { automargin: true },
-                  height: 400,
-                }}
-                config={{ displayModeBar: false, responsive: true }}
-                style={{ width: '100%' }}
+                  yaxis: { automargin: true }, height: 420 }}
+                config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
               />
             </GlassCard>
           )}
-
-          {/* Local LIME */}
           {localLime && (
             <GlassCard>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -169,30 +183,14 @@ export default function Explainability() {
                 </span>
               </div>
               <Plot
-                data={[
-                  {
-                    y: localLime.contributions.map((c) => c.feature).reverse(),
-                    x: localLime.contributions.map((c) => c.weight).reverse(),
-                    type: 'bar',
-                    orientation: 'h',
-                    marker: {
-                      color: localLime.contributions
-                        .map((c) => (c.weight >= 0 ? '#8B5CF6' : '#9CA3AF'))
-                        .reverse(),
-                    },
-                  },
-                ]}
-                layout={{
-                  margin: { t: 10, b: 40, l: 220, r: 20 },
-                  paper_bgcolor: 'rgba(0,0,0,0)',
-                  plot_bgcolor: 'rgba(0,0,0,0)',
+                data={[{ y: localLime.contributions.map((c) => c.feature).reverse(),
+                  x: localLime.contributions.map((c) => c.weight).reverse(), type: 'bar', orientation: 'h',
+                  marker: { color: localLime.contributions.map((c) => (c.weight >= 0 ? '#8B5CF6' : '#9CA3AF')).reverse() } }]}
+                layout={{ margin: { t: 10, b: 40, l: 240, r: 20 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                   font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 11 },
                   xaxis: { title: 'LIME Weight', gridcolor: '#E2E8F0', zeroline: true, zerolinecolor: '#CBD5E1' },
-                  yaxis: { automargin: true },
-                  height: 400,
-                }}
-                config={{ displayModeBar: false, responsive: true }}
-                style={{ width: '100%' }}
+                  yaxis: { automargin: true }, height: 420 }}
+                config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
               />
             </GlassCard>
           )}

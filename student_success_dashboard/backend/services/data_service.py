@@ -35,11 +35,11 @@ def get_target_distribution():
     return {"labels": counts.index.tolist(), "values": counts.values.tolist()}
 
 
-def get_gpa_by_target():
+def get_cgpa_by_target():
     df = _load_df()
     result = []
     for target in df["target"].unique():
-        subset = df[df["target"] == target]["prev_gpa"]
+        subset = df[df["target"] == target]["prev_cgpa"]
         result.append({
             "target": target,
             "values": subset.tolist(),
@@ -55,3 +55,42 @@ def get_correlation_matrix():
         "labels": corr.columns.tolist(),
         "matrix": np.round(corr.values, 3).tolist(),
     }
+
+
+def get_feature_distributions():
+    """Distribution of all numeric features split by target outcome."""
+    df = _load_df()
+    numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns.tolist()
+    if "target" in numeric_cols:
+        numeric_cols.remove("target")
+
+    result = {}
+    for col in numeric_cols:
+        result[col] = {}
+        for target in sorted(df["target"].unique()):
+            values = df[df["target"] == target][col].dropna().tolist()
+            result[col][target] = {
+                "values": values,
+                "mean": round(float(np.mean(values)), 2),
+                "median": round(float(np.median(values)), 2),
+                "std": round(float(np.std(values)), 2),
+            }
+    return result
+
+
+def get_categorical_distributions():
+    """Distribution of categorical features split by target outcome."""
+    df = _load_df()
+    cat_cols = df.select_dtypes(include=["object"]).columns.tolist()
+    if "target" in cat_cols:
+        cat_cols.remove("target")
+
+    result = {}
+    for col in cat_cols:
+        cross = pd.crosstab(df[col], df["target"], normalize="index")
+        result[col] = {
+            "categories": cross.index.tolist(),
+            "targets": cross.columns.tolist(),
+            "values": np.round(cross.values, 4).tolist(),
+        }
+    return result
