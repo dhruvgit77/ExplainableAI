@@ -57,19 +57,24 @@ def get_lime_for_input(processed_features: dict, model_name="XGBoost"):
     pred_idx = int(model.predict(instance.reshape(1, -1))[0])
     class_names = ["Fail", "At-Risk", "Pass"]
 
+    # Higher num_samples makes it less "vague" and more stable
     explanation = explainer.explain_instance(
         data_row=instance,
         predict_fn=model.predict_proba,
         num_features=len(processed_features),
         labels=[pred_idx],
+        num_samples=5000
     )
 
     contrib = explanation.as_list(label=pred_idx)
+    
+    # Sort by absolute weight to ensure top drivers are first
+    sorted_contrib = sorted(contrib, key=lambda x: abs(x[1]), reverse=True)
 
     return {
         "predicted_class": class_names[pred_idx],
         "contributions": [
             {"feature": feat, "weight": round(float(weight), 4)}
-            for feat, weight in contrib
+            for feat, weight in sorted_contrib
         ],
     }

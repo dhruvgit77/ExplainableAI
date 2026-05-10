@@ -6,6 +6,7 @@ import ModelComparison from './pages/ModelComparison';
 import Explainability from './pages/Explainability';
 import BiasAudit from './pages/BiasAudit';
 import Predict from './pages/Predict';
+import BatchPredict from './pages/BatchPredict';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/explainability" element={<Explainability />} />
           <Route path="/bias" element={<BiasAudit />} />
           <Route path="/predict" element={<Predict />} />
+          <Route path="/batch" element={<BatchPredict />} />
         </Route>
       </Routes>
     </BrowserRouter>

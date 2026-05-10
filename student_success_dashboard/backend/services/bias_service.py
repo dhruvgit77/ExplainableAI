@@ -8,6 +8,11 @@ from sklearn.model_selection import train_test_split
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'student_data.csv')
 MODEL_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'models')
 
+ALL_BIAS_ATTRIBUTES = [
+    'gender', 'region', 'board_type', 'parent_education',
+    'medium_of_instruction', 'internet_quality', 'coaching_enrolled',
+]
+
 
 def audit_bias():
     df = pd.read_csv(DATA_PATH)
@@ -32,8 +37,10 @@ def audit_bias():
 
     results = []
 
-    for attr in ['gender', 'region']:
-        for group in df_test[attr].unique():
+    for attr in ALL_BIAS_ATTRIBUTES:
+        if attr not in df_test.columns:
+            continue
+        for group in sorted(df_test[attr].unique()):
             mask = df_test[attr] == group
             if mask.sum() == 0:
                 continue
@@ -52,6 +59,10 @@ def audit_bias():
             else:
                 recall_pass = None
 
+            # Statistical Parity Difference (compared to overall pass rate)
+            overall_pass_rate = float((df_test['predicted_target_encoded'] == 2).mean())
+            spd = round(pass_rate - overall_pass_rate, 4)
+
             results.append({
                 "attribute": attr,
                 "group": group,
@@ -59,6 +70,7 @@ def audit_bias():
                 "accuracy": round(group_acc, 4),
                 "predicted_pass_rate": round(pass_rate, 4),
                 "equal_opportunity": round(recall_pass, 4) if recall_pass is not None else None,
+                "statistical_parity_diff": spd,
             })
 
     return results
