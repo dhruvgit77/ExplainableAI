@@ -21,9 +21,19 @@ def distribution():
 
 @router.get("/boxplot")
 def boxplot():
-    return data_service.get_gpa_by_target()
+    return data_service.get_cgpa_by_target()
 
 
 @router.get("/correlation")
 def correlation():
     return data_service.get_correlation_matrix()
+
+
+@router.get("/feature-distributions")
+def feature_distributions():
+    return data_service.get_feature_distributions()
+
+
+@router.get("/categorical-distributions")
+def categorical_distributions():
+    return data_service.get_categorical_distributions()
