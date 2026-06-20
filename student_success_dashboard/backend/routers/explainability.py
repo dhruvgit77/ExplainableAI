@@ -8,16 +8,16 @@ router = APIRouter(prefix="/api/xai", tags=["Explainability"])
 class LocalRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
     student_index: int
-    model_name: str = "XGBoost"
+    model_name: str = "Combined"
 
 
 @router.get("/shap/global")
-def shap_global(model_name: str = "XGBoost"):
+def shap_global(model_name: str = "Combined"):
     return shap_service.get_global_shap(model_name)
 
 
 @router.get("/shap/dependence")
-def shap_dependence(model_name: str = "XGBoost", top_n: int = 6):
+def shap_dependence(model_name: str = "Combined", top_n: int = 6):
     return shap_service.get_shap_dependence(model_name, top_n)
 
 

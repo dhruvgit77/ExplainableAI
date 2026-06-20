@@ -5,7 +5,7 @@ import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useGsapOnData } from '../hooks/useGsap';
 
-const PALETTE = ['#8B5CF6', '#A78BFA', '#DDD6FE'];
+const PALETTE = ['#4F46E5', '#818CF8', '#C7D2FE'];
 const Plot = PlotObj.default || PlotObj;
 
 export default function EDA() {
@@ -176,7 +176,7 @@ export default function EDA() {
           <div className="divider" />
           <GlassCard title="Feature Correlation Matrix" className="section gsap-fade">
             <Plot
-              data={[{ z: corr.matrix, x: corr.labels, y: corr.labels, type: 'heatmap', colorscale: [[0, '#F5F3FF'], [0.5, '#A78BFA'], [1, '#8B5CF6']], text: corr.matrix.map((row) => row.map((v) => v.toFixed(2))), texttemplate: '%{text}', textfont: { size: 10 }, showscale: true }]}
+              data={[{ z: corr.matrix, x: corr.labels, y: corr.labels, type: 'heatmap', colorscale: [[0, '#EEF2FF'], [0.5, '#818CF8'], [1, '#4F46E5']], text: corr.matrix.map((row) => row.map((v) => v.toFixed(2))), texttemplate: '%{text}', textfont: { size: 10 }, showscale: true }]}
               layout={{ margin: { t: 20, b: 100, l: 120, r: 20 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 11 }, height: 450, xaxis: { tickangle: -45 } }}
               config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
             />

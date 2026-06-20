@@ -88,7 +88,7 @@ function Particles() {
         </bufferGeometry>
         <pointsMaterial
           size={0.06}
-          color="#8B5CF6"
+          color="#4F46E5"
           transparent
           opacity={0.6}
           sizeAttenuation
@@ -99,7 +99,7 @@ function Particles() {
       <lineSegments ref={linesRef}>
         <bufferGeometry />
         <lineBasicMaterial
-          color="#A78BFA"
+          color="#818CF8"
           transparent
           opacity={0.12}
           depthWrite={false}

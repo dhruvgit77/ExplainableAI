@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 archive(3).zip
 archive_data/
+.DS_Store
+*.db
+student_success_dashboard/vidya_setu.db

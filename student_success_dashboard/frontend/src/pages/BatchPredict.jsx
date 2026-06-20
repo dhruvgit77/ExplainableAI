@@ -9,10 +9,16 @@ const Plot = PlotObj.default || PlotObj;
 const PALETTE = { Pass: '#059669', 'At-Risk': '#D97706', Fail: '#DC2626' };
 
 const REQUIRED_FIELDS = [
-  'gender', 'region', 'board_type', 'parent_education', 'medium_of_instruction',
+  // Traditional
+  'gender', 'region', 'degree_type', 'parent_education', 'medium_of_instruction',
   'internet_quality', 'coaching_enrolled', 'financial_stress', 'num_subjects',
-  'study_hours_per_week', 'sleep_hours_avg', 'extracurricular_count',
+  'study_hours_per_week', 'attendance_rate', 'sleep_hours_avg', 'extracurricular_count',
   'prev_cgpa', 'internal_marks_pct', 'assignment_completion_pct',
+  // Modern AI-usage (real survey-based)
+  'ai_reliance', 'independent_after_ai', 'ai_anxiety', 'verify_ai_answers',
+  'reduced_thinking_effort', 'ai_assignment_pct', 'multitask_studying',
+  'shortform_consumption', 'doomscroll_sleep', 'nonstudy_screen_time',
+  'ai_usage_frequency',
 ];
 
 function parseCSV(text) {
@@ -33,12 +39,18 @@ function parseCSV(text) {
 
 function generateSampleCSV() {
   const header = REQUIRED_FIELDS.join(',');
+  // Each row has 30 columns matching REQUIRED_FIELDS order.
   const rows = [
-    'Male,North,CBSE,Graduate,English,4G/Good,Yes,3,5,22,7.5,2,8.2,78,85',
-    'Female,South,ICSE,Post-Graduate,English,5G/Excellent,Yes,2,6,25,7,3,9.1,88,92',
-    'Male,East,State Board,10th Pass,Hindi,2G/Slow,No,7,5,10,6,0,4.5,42,55',
-    'Female,Northeast,CBSE,12th Pass,Regional,3G/Moderate,No,6,4,14,6.5,1,5.8,58,65',
-    'Other,West,IB,Graduate,English,4G/Good,Yes,4,7,20,7,2,7.0,72,78',
+    // Strong record + genuine, healthy AI learner
+    'Male,North,B.Tech,Graduate,English,4G/Good,Yes,3,5,22,88,7.5,2,8.2,78,85,2,5,2,5,2,20,1,2,1,1,1-3/day',
+    // Good marks but BLIND AI use (heavy reliance, no verification)
+    'Female,South,MCA,Post-Graduate,English,5G/Excellent,Yes,4,6,20,82,7,2,8.5,80,82,5,1,5,1,5,88,4,4,4,7,5+/day',
+    // Weak record + shortcut AI use + distraction
+    'Male,East,BCA,10th Pass,Hindi,2G/Slow,No,7,5,10,62,6,0,4.5,42,55,4,2,4,2,4,75,3,4,3,5,5+/day',
+    // Balanced
+    'Female,West,B.E.,Graduate,English,4G/Good,Yes,4,7,20,80,7,2,7.0,72,78,3,3,3,3,3,50,2,3,2,3,3-5/day',
+    // Modest marks but careful, independent AI-augmented learning
+    'Female,Northeast,M.Tech,12th Pass,Regional,3G/Moderate,No,5,4,16,78,6.5,1,6.2,60,68,2,4,2,4,2,30,2,2,2,3,1-3/day',
   ];
   return header + '\n' + rows.join('\n');
 }
@@ -134,7 +146,7 @@ export default function BatchPredict() {
       <div className="grid-2 section">
         <GlassCard title="Upload Student CSV" className="gsap-fade">
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginBottom: 16 }}>
-            CSV must contain all 15 feature columns. 
+            CSV must contain all {REQUIRED_FIELDS.length} feature columns (traditional + AI-usage).
             <button onClick={handleDownloadSample} style={{
               background: 'none', border: 'none', color: 'var(--color-primary)',
               cursor: 'pointer', fontWeight: 700, textDecoration: 'underline', marginLeft: 6,
@@ -246,7 +258,7 @@ export default function BatchPredict() {
                 data={[{
                   x: predictions.map((p) => p.confidence),
                   type: 'histogram', nbinsx: 15,
-                  marker: { color: '#8B5CF6' },
+                  marker: { color: '#4F46E5' },
                 }]}
                 layout={{
                   margin: { t: 10, b: 40, l: 50, r: 10 },
@@ -270,7 +282,7 @@ export default function BatchPredict() {
                     <th>#</th>
                     <th>Gender</th>
                     <th>Region</th>
-                    <th>Board</th>
+                    <th>Degree</th>
                     <th>CGPA</th>
                     <th>Prediction</th>
                     <th>Confidence</th>
@@ -282,7 +294,7 @@ export default function BatchPredict() {
                       <td>{i + 1}</td>
                       <td>{records[i]?.gender}</td>
                       <td>{records[i]?.region}</td>
-                      <td>{records[i]?.board_type}</td>
+                      <td>{records[i]?.degree_type}</td>
                       <td>{records[i]?.prev_cgpa}</td>
                       <td>
                         <span className={`badge badge-${p.predicted_class === 'Pass' ? 'pass' : p.predicted_class === 'At-Risk' ? 'risk' : 'fail'}`}>

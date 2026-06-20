@@ -1,8 +1,21 @@
-import { NavLink } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { useAuth } from '../context/AuthContext';
 
-const links = [
+const teacherLinks = [
+  {
+    to: '/teacher',
+    label: 'My Students',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" stroke="currentColor" />
+        <circle cx="10" cy="7" r="4" stroke="currentColor" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" />
+      </svg>
+    ),
+  },
   {
     to: '/',
     label: 'Overview',
@@ -37,7 +50,7 @@ const links = [
         <circle cx="11" cy="10" r="1.5" fill="currentColor" />
         <circle cx="15" cy="14" r="1.5" fill="currentColor" />
         <circle cx="20" cy="6" r="1.5" fill="currentColor" />
-        <defs><linearGradient id="sidebar-grad" x1="7" y1="6" x2="20" y2="16"><stop stopColor="#A78BFA" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs>
+        <defs><linearGradient id="sidebar-grad" x1="7" y1="6" x2="20" y2="16"><stop stopColor="#818CF8" /><stop offset="1" stopColor="#4F46E5" /></linearGradient></defs>
       </svg>
     ),
   },
@@ -72,7 +85,7 @@ const links = [
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M13 2L4.1 13.4a1 1 0 0 0 .8 1.6H11l-1 7 8.9-11.4a1 1 0 0 0-.8-1.6H13l0-7z" stroke="currentColor" fill="url(#bolt-grad)" fillOpacity="0.15" strokeWidth="1.8" />
-        <defs><linearGradient id="bolt-grad" x1="8" y1="2" x2="16" y2="22"><stop stopColor="#A78BFA" /><stop offset="1" stopColor="#6D28D9" /></linearGradient></defs>
+        <defs><linearGradient id="bolt-grad" x1="8" y1="2" x2="16" y2="22"><stop stopColor="#818CF8" /><stop offset="1" stopColor="#3730A3" /></linearGradient></defs>
       </svg>
     ),
   },
@@ -89,8 +102,26 @@ const links = [
   },
 ];
 
+const studentLinks = [
+  {
+    to: '/student',
+    label: 'My Report',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" />
+        <polyline points="14 2 14 8 20 8" stroke="currentColor" />
+        <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" />
+        <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" />
+      </svg>
+    ),
+  },
+];
+
 export default function Sidebar() {
   const navRef = useRef(null);
+  const navigate = useNavigate();
+  const { auth, logout } = useAuth();
+  const links = auth?.role === 'student' ? studentLinks : teacherLinks;
 
   useEffect(() => {
     if (!navRef.current) return;
@@ -100,7 +131,12 @@ export default function Sidebar() {
       { opacity: 0, x: -20 },
       { opacity: 1, x: 0, duration: 0.5, stagger: 0.07, ease: 'power3.out', delay: 0.2 }
     );
-  }, []);
+  }, [auth?.role]);
+
+  function handleLogout() {
+    logout();
+    navigate('/login', { replace: true });
+  }
 
   return (
     <aside className="sidebar">
@@ -108,15 +144,24 @@ export default function Sidebar() {
         <h2>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 10v6M2 10l10-5 10 5-10 5z" stroke="url(#brand-grad)" strokeWidth="2" />
-            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" stroke="#A78BFA" />
-            <circle cx="12" cy="10" r="1.2" fill="#A78BFA" />
-            <defs><linearGradient id="brand-grad" x1="2" y1="5" x2="22" y2="16"><stop stopColor="#C4B5FD" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs>
+            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" stroke="#818CF8" />
+            <circle cx="12" cy="10" r="1.2" fill="#818CF8" />
+            <defs><linearGradient id="brand-grad" x1="2" y1="5" x2="22" y2="16"><stop stopColor="#A5B4FC" /><stop offset="1" stopColor="#4F46E5" /></linearGradient></defs>
           </svg>
           Vidya Setu
         </h2>
         <p>Indian Student Success AI</p>
       </div>
 
+      {auth && (
+        <div className="sidebar-profile">
+          <div className="profile-avatar">{auth.name?.[0]?.toUpperCase() || '?'}</div>
+          <div className="profile-info">
+            <span className="profile-name">{auth.name}</span>
+            <span className="profile-role">{auth.role === 'teacher' ? 'Teacher' : 'Student'}</span>
+          </div>
+        </div>
+      )}
 
       <nav className="sidebar-nav" ref={navRef}>
         {links.map((link) => (
@@ -133,6 +178,17 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      <div className="sidebar-footer">
+        <button className="btn-logout" onClick={handleLogout}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Log Out
+        </button>
+      </div>
     </aside>
   );
 }

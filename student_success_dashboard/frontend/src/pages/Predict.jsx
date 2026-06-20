@@ -5,13 +5,14 @@ import { api } from '../api/client';
 import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StudentReport from '../components/StudentReport';
+import StudentFeatureForm from '../components/StudentFeatureForm';
 
 const Plot = PlotObj.default || PlotObj;
 
 const defaults = {
   gender: 'Male',
   region: 'North',
-  board_type: 'CBSE',
+  degree_type: 'B.Tech',
   parent_education: 'Graduate',
   medium_of_instruction: 'English',
   internet_quality: '4G/Good',
@@ -25,6 +26,18 @@ const defaults = {
   prev_cgpa: 7.5,
   internal_marks_pct: 72,
   assignment_completion_pct: 80,
+  // ── Modern AI-usage features (real survey-based) ──
+  ai_reliance: 3,
+  independent_after_ai: 3,
+  ai_anxiety: 3,
+  verify_ai_answers: 3,
+  reduced_thinking_effort: 3,
+  ai_assignment_pct: 50,
+  multitask_studying: 2,
+  shortform_consumption: 2,
+  doomscroll_sleep: 2,
+  nonstudy_screen_time: 3,
+  ai_usage_frequency: '3-5/day',
 };
 
 export default function Predict() {
@@ -112,137 +125,11 @@ export default function Predict() {
     <div>
       <div className="page-header">
         <h1>Live Prediction</h1>
-        <p>Enter an Indian student's academic profile. The model predicts their outcome with SHAP and LIME explanations.</p>
+        <p>Enter a student's <b>traditional academic record</b> and <b>modern AI-usage profile</b>. The Combined model weighs both and explains its decision with SHAP and LIME.</p>
       </div>
 
       <form onSubmit={handleSubmit} ref={formRef}>
-        <div className="grid-3 section">
-          {/* Academic Record */}
-          <GlassCard title="Academic Record">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Previous CGPA (UGC 10-pt)</span>
-                  <span className="slider-value">{form.prev_cgpa}</span>
-                </div>
-                <input type="range" min="1" max="10" step="0.1" value={form.prev_cgpa} onChange={(e) => update('prev_cgpa', parseFloat(e.target.value))} />
-              </div>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Internal Marks (%)</span>
-                  <span className="slider-value">{form.internal_marks_pct}</span>
-                </div>
-                <input type="range" min="0" max="100" step="1" value={form.internal_marks_pct} onChange={(e) => update('internal_marks_pct', parseInt(e.target.value))} />
-              </div>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Assignment Completion (%)</span>
-                  <span className="slider-value">{form.assignment_completion_pct}</span>
-                </div>
-                <input type="range" min="0" max="100" step="1" value={form.assignment_completion_pct} onChange={(e) => update('assignment_completion_pct', parseInt(e.target.value))} />
-              </div>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Study Hours / Week</span>
-                  <span className="slider-value">{form.study_hours_per_week}</span>
-                </div>
-                <input type="range" min="0" max="40" step="1" value={form.study_hours_per_week} onChange={(e) => update('study_hours_per_week', parseInt(e.target.value))} />
-              </div>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Subjects Enrolled</span>
-                  <span className="slider-value">{form.num_subjects}</span>
-                </div>
-                <input type="range" min="4" max="8" step="1" value={form.num_subjects} onChange={(e) => update('num_subjects', parseInt(e.target.value))} />
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Education System */}
-          <GlassCard title="Education System">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="form-group">
-                <label className="form-label">Board Type</label>
-                <select className="form-select" value={form.board_type} onChange={(e) => update('board_type', e.target.value)}>
-                  <option>CBSE</option><option>ICSE</option><option>State Board</option><option>IB</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Medium of Instruction</label>
-                <select className="form-select" value={form.medium_of_instruction} onChange={(e) => update('medium_of_instruction', e.target.value)}>
-                  <option>English</option><option>Hindi</option><option>Regional</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Coaching Enrolled</label>
-                <select className="form-select" value={form.coaching_enrolled} onChange={(e) => update('coaching_enrolled', e.target.value)}>
-                  <option>Yes</option><option>No</option>
-                </select>
-              </div>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Attendance Rate (%)</span>
-                  <span className="slider-value">{form.attendance_rate}%</span>
-                </div>
-                <input type="range" min="40" max="100" step="1" value={form.attendance_rate} onChange={(e) => update('attendance_rate', parseFloat(e.target.value))} />
-              </div>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Extracurricular Activities</span>
-                  <span className="slider-value">{form.extracurricular_count}</span>
-                </div>
-                <input type="range" min="0" max="5" step="1" value={form.extracurricular_count} onChange={(e) => update('extracurricular_count', parseInt(e.target.value))} />
-              </div>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Avg Sleep (Hours)</span>
-                  <span className="slider-value">{form.sleep_hours_avg}</span>
-                </div>
-                <input type="range" min="3" max="12" step="0.5" value={form.sleep_hours_avg} onChange={(e) => update('sleep_hours_avg', parseFloat(e.target.value))} />
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Demographics */}
-          <GlassCard title="Demographics & Wellbeing">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="form-group">
-                <label className="form-label">Gender</label>
-                <select className="form-select" value={form.gender} onChange={(e) => update('gender', e.target.value)}>
-                  <option>Male</option><option>Female</option><option>Other</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Region</label>
-                <select className="form-select" value={form.region} onChange={(e) => update('region', e.target.value)}>
-                  <option>North</option><option>South</option><option>East</option>
-                  <option>West</option><option>Northeast</option><option>Central</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Parent Education</label>
-                <select className="form-select" value={form.parent_education} onChange={(e) => update('parent_education', e.target.value)}>
-                  <option>Below 10th</option><option>10th Pass</option><option>12th Pass</option>
-                  <option>Graduate</option><option>Post-Graduate</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Internet Quality</label>
-                <select className="form-select" value={form.internet_quality} onChange={(e) => update('internet_quality', e.target.value)}>
-                  <option>No Access</option><option>2G/Slow</option><option>3G/Moderate</option>
-                  <option>4G/Good</option><option>5G/Excellent</option>
-                </select>
-              </div>
-              <div className="slider-group">
-                <div className="slider-header">
-                  <span className="form-label">Financial Stress (1-10)</span>
-                  <span className="slider-value">{form.financial_stress}</span>
-                </div>
-                <input type="range" min="1" max="10" step="1" value={form.financial_stress} onChange={(e) => update('financial_stress', parseInt(e.target.value))} />
-              </div>
-            </div>
-          </GlassCard>
-        </div>
+        <StudentFeatureForm form={form} update={update} />
 
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', marginBottom: 32, padding: '16px 28px', fontSize: '1rem' }}>
           {loading ? 'Predicting...' : '⚡ Predict Student Outcome'}
@@ -309,7 +196,16 @@ export default function Predict() {
                             }
                           }
                           if (f.includes('internet')) advice = "Infrastructure: Provide access to the campus digital library or offline study materials.";
-                          
+                          if (f.includes('integrity_flag')) advice = "Integrity: Address flagged AI misuse with supervised, AI-free assessments to rebuild academic trust.";
+                          if (f.includes('copy_paste')) advice = "AI Habits: Reduce verbatim copy-pasting — rewrite AI output in own words and re-solve unaided.";
+                          if (f.includes('concept_understanding')) advice = "Deep Learning: Use AI to explain step-by-step, then self-test to confirm genuine understanding.";
+                          if (f.includes('original_work')) advice = "Ownership: Draft first and use AI only to review — keep authorship of submitted work.";
+                          if (f.includes('verification')) advice = "Verification: Cross-check AI answers against notes/textbooks and run code to validate it.";
+                          if (f.includes('dependency')) advice = "Balance: Schedule AI-free study blocks to rebuild independent problem-solving.";
+                          if (f.includes('self_study')) advice = "Practice: Add regular unaided self-study sessions to improve retention.";
+                          if (f.includes('prompt_quality') || f.includes('critical_thinking') || f.includes('problem_attempt') || f.includes('use_purpose')) advice = "Effective AI Use: Attempt first, prompt with context, and use AI to critique your reasoning.";
+                          if (f.includes('digital_literacy')) advice = "Skills: Build core digital literacy via free courses (SWAYAM, Digital India).";
+
                           if (!advice) return null;
                           return (
                             <li key={idx} style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>

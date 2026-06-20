@@ -8,3 +8,6 @@ shap
 lime
 fairlearn
 joblib
+sqlalchemy
+pyjwt
+bcrypt
