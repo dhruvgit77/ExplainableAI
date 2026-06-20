@@ -129,14 +129,14 @@ export default function Home() {
           🇮🇳 Vidya Setu — Indian Student Success Platform
         </h1>
         <p className="hero-subtitle">
-          Explainable AI for Indian Education. Predict student outcomes across CBSE, ICSE, and State Board systems
-          with transparent, interpretable ML models and fairness auditing.
+          Explainable AI for the AI era. Vidya Setu predicts student outcomes from both <b>traditional academic records</b> and
+          <b> modern AI-usage behaviour</b> — rewarding genuine AI-augmented learning and flagging blind copy-pasting.
         </p>
 
         <div className="grid-3" style={{ marginTop: 24 }}>
-          <AnimatedStat value={5000} label="Students Analyzed" />
-          <AnimatedStat value={4} label="ML Models Compared" />
-          <AnimatedStat value={97} label="Best Accuracy" suffix="%" />
+          <AnimatedStat value={27} label="Features (Traditional + Real AI)" />
+          <AnimatedStat value={5} label="ML Models Compared" />
+          <AnimatedStat value={86} label="Combined Accuracy" suffix="%" />
         </div>
       </div>
 
@@ -151,10 +151,12 @@ export default function Home() {
       <div className="glass-card gsap-fade">
         <h3 style={{ marginBottom: 16 }}>About the Platform</h3>
         <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.8, fontSize: 'var(--font-base)' }}>
-          Vidya Setu leverages state-of-the-art Machine Learning models trained on Indian academic indicators —
-          including CGPA (UGC 10-point scale), board type (CBSE/ICSE/State/IB), coaching enrollment, medium of instruction,
-          and regional socioeconomic factors. It provides transparent SHAP and LIME explanations to help educators
-          identify at-risk students early, while auditing for bias across gender, region, and board type.
+          Vidya Setu compares <b>five ML models</b> (Logistic Regression, Random Forest, Extra Trees, Gradient Boosting and
+          XGBoost) across three feature sets — a <b>Traditional</b> model (CGPA, attendance, marks, coaching, regional factors),
+          a <b>Modern</b> model built on <b>real survey data</b> of AI-usage behaviour (reliance, verification, independence
+          after AI, assignment outsourcing, digital distraction), and a <b>Combined</b> model that uses both. Each model is
+          selected with leak-free cross-validation; adding the real AI-usage signal lifts accuracy from ~68% to ~86%. Every
+          prediction is explained with SHAP and LIME, and audited for bias across gender, region, and degree program.
         </p>
       </div>
     </div>

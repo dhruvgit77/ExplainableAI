@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
-from .model_service import get_model, load_test_data, get_feature_names
+from .model_service import get_model, load_test_data, get_feature_names, PRODUCTION_VARIANT
 
 
-def _build_explainer(model_name="XGBoost"):
+def _build_explainer(model_name=PRODUCTION_VARIANT):
     """Build a LIME tabular explainer using the test data as background."""
-    X_test, y_test = load_test_data()
-    feature_names = get_feature_names()
+    X_test, y_test = load_test_data(model_name)
+    feature_names = get_feature_names(model_name)
     class_names = ["Fail", "At-Risk", "Pass"]
 
     explainer = LimeTabularExplainer(
@@ -20,7 +20,7 @@ def _build_explainer(model_name="XGBoost"):
     return explainer, X_test
 
 
-def get_local_lime(student_index: int, model_name="XGBoost"):
+def get_local_lime(student_index: int, model_name=PRODUCTION_VARIANT):
     """LIME explanation for a student from the test set."""
     explainer, X_test = _build_explainer(model_name)
     model = get_model(model_name)
@@ -48,7 +48,7 @@ def get_local_lime(student_index: int, model_name="XGBoost"):
     }
 
 
-def get_lime_for_input(processed_features: dict, model_name="XGBoost"):
+def get_lime_for_input(processed_features: dict, model_name=PRODUCTION_VARIANT):
     """LIME explanation for a live prediction (already-processed features)."""
     explainer, X_test = _build_explainer(model_name)
     model = get_model(model_name)

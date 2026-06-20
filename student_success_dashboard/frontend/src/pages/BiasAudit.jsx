@@ -6,12 +6,12 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useGsapOnData } from '../hooks/useGsap';
 
 const Plot = PlotObj.default || PlotObj;
-const PALETTE = ['#8B5CF6', '#A78BFA', '#6D28D9', '#DDD6FE', '#C4B5FD', '#EDE9FE'];
+const PALETTE = ['#4F46E5', '#818CF8', '#3730A3', '#C7D2FE', '#A5B4FC', '#EDE9FE'];
 
 const ATTR_LABELS = {
   gender: 'Gender',
   region: 'Region',
-  board_type: 'Board Type',
+  degree_type: 'Degree Program',
   parent_education: 'Parent Education',
   medium_of_instruction: 'Medium of Instruction',
   internet_quality: 'Internet Quality',

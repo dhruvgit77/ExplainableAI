@@ -14,11 +14,23 @@ const FEATURE_LABELS = {
   financial_stress: 'Financial Stress',
   gender: 'Gender',
   region: 'Region',
-  board_type: 'Board Type',
+  degree_type: 'Degree Program',
   parent_education: 'Parent Education',
   medium_of_instruction: 'Medium of Instruction',
   internet_quality: 'Internet Quality',
   coaching_enrolled: 'Coaching Enrolled',
+  // Modern AI-usage features (real survey-based)
+  ai_reliance: 'Heavy AI Reliance',
+  independent_after_ai: 'Independent After AI',
+  ai_anxiety: 'Anxiety Without AI',
+  verify_ai_answers: 'Verifies AI Answers',
+  reduced_thinking_effort: 'Reduced Thinking Effort',
+  ai_assignment_pct: 'Assignments Using AI (%)',
+  multitask_studying: 'Phone Multitasking',
+  shortform_consumption: 'Short-form Content',
+  doomscroll_sleep: 'Doomscrolling',
+  nonstudy_screen_time: 'Non-study Screen Time',
+  ai_usage_frequency: 'AI Usage Frequency',
 };
 
 /**
@@ -111,6 +123,62 @@ function getImprovementSuggestions(shapFeatures, shapValues, formData) {
         issue: 'Regional factors may limit access to resources.',
         action: 'Leverage digital India initiatives, SWAYAM MOOCs, and regional scholarship programs for your area.',
       });
+    } else if (f.includes('ai_reliance')) {
+      suggestions.push({
+        area: 'AI Over-Reliance',
+        icon: '⚖️',
+        issue: `Heavy reliance on AI for studying is weakening independent problem-solving.`,
+        action: 'Set "AI-free" study blocks and attempt problems fully before consulting any tool.',
+      });
+    } else if (f.includes('independent_after_ai')) {
+      suggestions.push({
+        area: 'Independent Problem-Solving',
+        icon: '🧠',
+        issue: 'Difficulty solving similar problems independently after AI help signals surface-level learning.',
+        action: 'After every AI explanation, close the tool and re-solve a similar problem unaided to confirm understanding.',
+      });
+    } else if (f.includes('verify_ai_answers')) {
+      suggestions.push({
+        area: 'Verifying AI Output',
+        icon: '🔍',
+        issue: 'AI answers are rarely verified before being trusted, risking learning wrong information.',
+        action: 'Cross-check AI answers against textbooks/lecture notes and validate code by running it.',
+      });
+    } else if (f.includes('reduced_thinking_effort')) {
+      suggestions.push({
+        area: 'Independent Thinking',
+        icon: '✍️',
+        issue: 'AI has noticeably reduced the effort put into independent thinking.',
+        action: 'Draft your own reasoning first, then use AI only to review and challenge it — keep authorship your own.',
+      });
+    } else if (f.includes('ai_assignment_pct')) {
+      suggestions.push({
+        area: 'Outsourcing Assignments',
+        icon: '📋',
+        issue: `A high share of assignments is done using AI, limiting genuine skill growth.`,
+        action: 'Treat AI as a tutor, not an author. Attempt assignments yourself first and use AI to check, not to produce.',
+      });
+    } else if (f.includes('ai_anxiety')) {
+      suggestions.push({
+        area: 'AI Dependence Anxiety',
+        icon: '😰',
+        issue: 'Feeling anxious when AI is unavailable indicates unhealthy dependence.',
+        action: 'Practice regular unaided study sessions to build confidence working without AI.',
+      });
+    } else if (f.includes('doomscroll') || f.includes('shortform') || f.includes('multitask') || f.includes('screen_time')) {
+      suggestions.push({
+        area: 'Digital Distraction',
+        icon: '📱',
+        issue: 'High screen time / doomscrolling / multitasking is eating into focused study and sleep.',
+        action: 'Use focus blocks (phone in another room), limit short-form apps, and stop scrolling 1 hour before bed.',
+      });
+    } else if (f.includes('ai_usage_frequency')) {
+      suggestions.push({
+        area: 'AI Usage Intensity',
+        icon: '🤖',
+        issue: 'Very frequent AI use can crowd out independent practice.',
+        action: 'Be intentional: attempt first, use AI for specific stuck points, and review its output critically.',
+      });
     }
   }
 
@@ -155,8 +223,8 @@ const StudentReport = forwardRef(function StudentReport({ formData, result }, re
       <div className="report-header">
         <div className="report-brand">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-            <path d="M22 10v6M2 10l10-5 10 5-10 5z" stroke="#8B5CF6" strokeWidth="2" />
-            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" stroke="#A78BFA" />
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z" stroke="#4F46E5" strokeWidth="2" />
+            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" stroke="#818CF8" />
           </svg>
           <div>
             <strong style={{ fontSize: 16 }}>Vidya Setu</strong>
@@ -177,13 +245,18 @@ const StudentReport = forwardRef(function StudentReport({ formData, result }, re
           <div className="report-card-title">Student Profile</div>
           <div className="report-profile-grid">
             <div><span className="report-label">Region:</span> {formData.region}</div>
-            <div><span className="report-label">Board:</span> {formData.board_type}</div>
+            <div><span className="report-label">Degree:</span> {formData.degree_type}</div>
             <div><span className="report-label">CGPA:</span> {formData.prev_cgpa}/10</div>
             <div><span className="report-label">Internal Marks:</span> {formData.internal_marks_pct}%</div>
             <div><span className="report-label">Assignments:</span> {formData.assignment_completion_pct}%</div>
             <div><span className="report-label">Study Hrs/Wk:</span> {formData.study_hours_per_week}</div>
             <div><span className="report-label">Coaching:</span> {formData.coaching_enrolled}</div>
             <div><span className="report-label">Medium:</span> {formData.medium_of_instruction}</div>
+            <div><span className="report-label">AI Frequency:</span> {formData.ai_usage_frequency}</div>
+            <div><span className="report-label">Assignments via AI:</span> {formData.ai_assignment_pct}%</div>
+            <div><span className="report-label">Independent After AI:</span> {formData.independent_after_ai}/5</div>
+            <div><span className="report-label">Verifies AI:</span> {formData.verify_ai_answers}/5</div>
+            <div><span className="report-label">AI Reliance:</span> {formData.ai_reliance}/5</div>
           </div>
         </div>
 
@@ -274,7 +347,7 @@ const StudentReport = forwardRef(function StudentReport({ formData, result }, re
       {/* Footer */}
       <div className="report-footer">
         <div>Generated by <strong>Vidya Setu AI</strong> — Explainable AI for Indian Education</div>
-        <div>Based on SHAP & LIME analysis • XGBoost Model • {dateStr}</div>
+        <div>Based on SHAP & LIME analysis • Combined XGBoost Model (Traditional + AI-usage) • {dateStr}</div>
       </div>
     </div>
   );
