@@ -5,7 +5,9 @@ import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useGsapOnData } from '../hooks/useGsap';
 
-const PALETTE = ['#4F46E5', '#818CF8', '#C7D2FE'];
+const STATUS_COLOR = { Pass: '#10B981', 'At-Risk': '#F59E0B', Fail: '#EF4444' };
+const GRAY_FALLBACK = ['#0A0A0A', '#52525B', '#A1A1AA', '#D4D4D8'];
+const colorFor = (label, i) => STATUS_COLOR[label] || GRAY_FALLBACK[i % GRAY_FALLBACK.length];
 const Plot = PlotObj.default || PlotObj;
 
 export default function EDA() {
@@ -86,7 +88,7 @@ export default function EDA() {
         {dist && (
           <GlassCard title="Outcome Distribution" className="gsap-fade">
             <Plot
-              data={[{ labels: dist.labels, values: dist.values, type: 'pie', hole: 0.5, marker: { colors: PALETTE }, textinfo: 'label+percent', textfont: { family: 'Plus Jakarta Sans', size: 13 } }]}
+              data={[{ labels: dist.labels, values: dist.values, type: 'pie', hole: 0.5, marker: { colors: dist.labels.map(colorFor) }, textinfo: 'label+percent', textfont: { family: 'Plus Jakarta Sans', size: 13 } }]}
               layout={{ margin: { t: 20, b: 20, l: 20, r: 20 }, paper_bgcolor: 'rgba(0,0,0,0)', font: { family: 'Plus Jakarta Sans', color: '#1E293B' }, showlegend: true, legend: { orientation: 'h', y: -0.1 }, height: 320 }}
               config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
             />
@@ -95,7 +97,7 @@ export default function EDA() {
         {boxplot && (
           <GlassCard title="Previous CGPA by Outcome" className="gsap-fade">
             <Plot
-              data={boxplot.map((g, i) => ({ y: g.values, type: 'box', name: g.target, marker: { color: PALETTE[i % PALETTE.length] } }))}
+              data={boxplot.map((g, i) => ({ y: g.values, type: 'box', name: g.target, marker: { color: colorFor(g.target, i) } }))}
               layout={{ margin: { t: 20, b: 40, l: 50, r: 20 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { family: 'Plus Jakarta Sans', color: '#1E293B' }, showlegend: false, height: 320, yaxis: { title: 'CGPA (1-10)', gridcolor: '#E2E8F0' } }}
               config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
             />
@@ -117,7 +119,7 @@ export default function EDA() {
                     data={targets.map((t, i) => ({
                       y: featDist[feat][t].values.slice(0, 200),
                       type: 'box', name: t,
-                      marker: { color: PALETTE[i % PALETTE.length] },
+                      marker: { color: colorFor(t, i) },
                     }))}
                     layout={{
                       margin: { t: 10, b: 30, l: 50, r: 10 },
@@ -150,7 +152,7 @@ export default function EDA() {
                       x: d.categories,
                       y: d.values.map((row) => row[i]),
                       type: 'bar', name: t,
-                      marker: { color: PALETTE[i % PALETTE.length] },
+                      marker: { color: colorFor(t, i) },
                     }))}
                     layout={{
                       barmode: 'stack',
@@ -176,7 +178,7 @@ export default function EDA() {
           <div className="divider" />
           <GlassCard title="Feature Correlation Matrix" className="section gsap-fade">
             <Plot
-              data={[{ z: corr.matrix, x: corr.labels, y: corr.labels, type: 'heatmap', colorscale: [[0, '#EEF2FF'], [0.5, '#818CF8'], [1, '#4F46E5']], text: corr.matrix.map((row) => row.map((v) => v.toFixed(2))), texttemplate: '%{text}', textfont: { size: 10 }, showscale: true }]}
+              data={[{ z: corr.matrix, x: corr.labels, y: corr.labels, type: 'heatmap', colorscale: [[0, '#F4F4F5'], [0.5, '#A1A1AA'], [1, '#0A0A0A']], text: corr.matrix.map((row) => row.map((v) => v.toFixed(2))), texttemplate: '%{text}', textfont: { size: 10 }, showscale: true }]}
               layout={{ margin: { t: 20, b: 100, l: 120, r: 20 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 11 }, height: 450, xaxis: { tickangle: -45 } }}
               config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
             />

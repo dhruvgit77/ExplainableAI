@@ -133,6 +133,32 @@ export default function BatchPredict() {
     URL.revokeObjectURL(url);
   }
 
+  function handleExportResults() {
+    if (!results) return;
+    // Original record columns + the prediction outputs appended.
+    const cols = [...REQUIRED_FIELDS, 'predicted_class', 'confidence', 'p_pass', 'p_at_risk', 'p_fail'];
+    const lines = [cols.join(',')];
+    results.predictions.forEach((p, i) => {
+      const rec = records[i] || {};
+      const row = REQUIRED_FIELDS.map((f) => rec[f]);
+      row.push(
+        p.predicted_class,
+        p.confidence,
+        p.probabilities?.Pass ?? '',
+        p.probabilities?.['At-Risk'] ?? '',
+        p.probabilities?.Fail ?? '',
+      );
+      lines.push(row.join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'prediction_results.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const summary = results?.summary;
   const predictions = results?.predictions || [];
 
@@ -258,7 +284,7 @@ export default function BatchPredict() {
                 data={[{
                   x: predictions.map((p) => p.confidence),
                   type: 'histogram', nbinsx: 15,
-                  marker: { color: '#4F46E5' },
+                  marker: { color: '#0A0A0A' },
                 }]}
                 layout={{
                   margin: { t: 10, b: 40, l: 50, r: 10 },
@@ -275,6 +301,11 @@ export default function BatchPredict() {
 
           {/* Predictions Table */}
           <GlassCard title="Individual Predictions" className="section gsap-result">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <button className="btn btn-primary" onClick={handleExportResults} style={{ padding: '8px 18px', fontSize: '0.8125rem' }}>
+                ⬇ Export Results CSV
+              </button>
+            </div>
             <div className="data-table-wrap">
               <table className="data-table">
                 <thead>

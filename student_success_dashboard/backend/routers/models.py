@@ -1,7 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from ..auth import require_role
 from ..services import model_service
 
-router = APIRouter(prefix="/api/models", tags=["Models"])
+router = APIRouter(prefix="/api/models", tags=["Models"], dependencies=[Depends(require_role("teacher"))])
 
 
 @router.get("/evaluate")

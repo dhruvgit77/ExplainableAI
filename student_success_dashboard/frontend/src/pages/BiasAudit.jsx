@@ -6,7 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useGsapOnData } from '../hooks/useGsap';
 
 const Plot = PlotObj.default || PlotObj;
-const PALETTE = ['#4F46E5', '#818CF8', '#3730A3', '#C7D2FE', '#A5B4FC', '#EDE9FE'];
+const PALETTE = ['#0A0A0A', '#27272A', '#52525B', '#71717A', '#A1A1AA', '#D4D4D8'];
 
 const ATTR_LABELS = {
   gender: 'Gender',

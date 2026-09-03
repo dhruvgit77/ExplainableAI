@@ -35,12 +35,29 @@ MODERN_NUMERIC = [
 ]
 MODERN_CATEGORICAL = ['ai_usage_frequency']
 
+# REAL-time AGENTIC features (Tier 3) measured from student artifacts by the
+# extraction pipeline. See data/agentic_features.py.
+AGENTIC_NUMERIC = [
+    'ai_authenticity_risk', 'stylometric_consistency', 'comprehension_depth',
+    'reasoning_coherence', 'code_originality', 'cross_modal_consistency',
+    'learning_trajectory_slope', 'knowledge_boundary_breadth',
+    'conceptual_error_rate', 'authentic_engagement',
+]
+AGENTIC_CATEGORICAL = ['dominant_error_type']
+
 FEATURE_SETS = {
     'Traditional': {'numeric': TRAD_NUMERIC, 'categorical': TRAD_CATEGORICAL},
     'Modern': {'numeric': MODERN_NUMERIC, 'categorical': MODERN_CATEGORICAL},
+    'Agentic': {'numeric': AGENTIC_NUMERIC, 'categorical': AGENTIC_CATEGORICAL},
+    # 'Combined' stays Tier1+Tier2 so the existing manual-entry UI keeps working.
     'Combined': {
         'numeric': TRAD_NUMERIC + MODERN_NUMERIC,
         'categorical': TRAD_CATEGORICAL + MODERN_CATEGORICAL,
+    },
+    # 'Full' is the evolved flagship: all three tiers.
+    'Full': {
+        'numeric': TRAD_NUMERIC + MODERN_NUMERIC + AGENTIC_NUMERIC,
+        'categorical': TRAD_CATEGORICAL + MODERN_CATEGORICAL + AGENTIC_CATEGORICAL,
     },
 }
 
@@ -175,15 +192,14 @@ def train_models():
         'variants': variants,
         'y_test': y_test,
         'raw_test': raw_test,
-        'production_variant': 'Combined',
+        'production_variant': 'Full',
         'class_names': ['Fail', 'At-Risk', 'Pass'],
     }
 
     output_dir = os.path.dirname(__file__)
     joblib.dump(artifacts, os.path.join(output_dir, 'artifacts.joblib'))
 
-    combined = variants['Combined']
-    combined['X_test'].to_csv(os.path.join(output_dir, 'X_test_processed.csv'), index=False)
+    variants['Full']['X_test'].to_csv(os.path.join(output_dir, 'X_test_processed.csv'), index=False)
     y_test.to_frame(name='target').to_csv(os.path.join(output_dir, 'y_test.csv'), index=False)
 
     print("\n" + "=" * 70)

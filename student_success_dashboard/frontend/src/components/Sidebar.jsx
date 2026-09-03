@@ -1,7 +1,8 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { useAuth } from '../context/AuthContext';
+import rvceLogo from '../assets/rvce-logo.png';
 
 const teacherLinks = [
   {
@@ -28,64 +29,12 @@ const teacherLinks = [
     ),
   },
   {
-    to: '/eda',
-    label: 'Data Insights',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" />
-        <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" />
-        <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" />
-        <path d="M17.5 14v7M14 17.5h7" stroke="currentColor" strokeWidth="2" />
-      </svg>
-    ),
-  },
-  {
-    to: '/models',
-    label: 'Model Bench',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 3v18h18" stroke="currentColor" strokeWidth="2" />
-        <path d="M7 16l4-6 4 4 5-8" stroke="url(#sidebar-grad)" strokeWidth="2" />
-        <circle cx="7" cy="16" r="1.5" fill="currentColor" />
-        <circle cx="11" cy="10" r="1.5" fill="currentColor" />
-        <circle cx="15" cy="14" r="1.5" fill="currentColor" />
-        <circle cx="20" cy="6" r="1.5" fill="currentColor" />
-        <defs><linearGradient id="sidebar-grad" x1="7" y1="6" x2="20" y2="16"><stop stopColor="#818CF8" /><stop offset="1" stopColor="#4F46E5" /></linearGradient></defs>
-      </svg>
-    ),
-  },
-  {
-    to: '/explainability',
-    label: 'Explainability',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" />
-        <path d="M12 8a2.5 2.5 0 0 1 1.8 4.2c-.5.6-1.3 1-1.8 1.6V15" stroke="currentColor" strokeWidth="2" />
-        <circle cx="12" cy="17.5" r="0.5" fill="currentColor" stroke="currentColor" />
-        <path d="M5.5 5.5l2 2M16.5 16.5l2 2M18.5 5.5l-2 2M5.5 18.5l2-2" stroke="currentColor" opacity="0.4" />
-      </svg>
-    ),
-  },
-  {
-    to: '/bias',
-    label: 'Fairness Lab',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3v18" stroke="currentColor" strokeWidth="2" />
-        <path d="M3 7h18" stroke="currentColor" />
-        <path d="M6 7l-2 8c0 1.1 1.3 2 3 2s3-.9 3-2L8 7" stroke="currentColor" />
-        <path d="M16 7l-2 8c0 1.1 1.3 2 3 2s3-.9 3-2l-2-8" stroke="currentColor" />
-        <circle cx="12" cy="3" r="1" fill="currentColor" />
-      </svg>
-    ),
-  },
-  {
     to: '/predict',
     label: 'Live Prediction',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M13 2L4.1 13.4a1 1 0 0 0 .8 1.6H11l-1 7 8.9-11.4a1 1 0 0 0-.8-1.6H13l0-7z" stroke="currentColor" fill="url(#bolt-grad)" fillOpacity="0.15" strokeWidth="1.8" />
-        <defs><linearGradient id="bolt-grad" x1="8" y1="2" x2="16" y2="22"><stop stopColor="#818CF8" /><stop offset="1" stopColor="#3730A3" /></linearGradient></defs>
+        <defs><linearGradient id="bolt-grad" x1="8" y1="2" x2="16" y2="22"><stop stopColor="#D4D4D8" /><stop offset="1" stopColor="#27272A" /></linearGradient></defs>
       </svg>
     ),
   },
@@ -119,7 +68,9 @@ const studentLinks = [
 
 export default function Sidebar() {
   const navRef = useRef(null);
+  const indicatorRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { auth, logout } = useAuth();
   const links = auth?.role === 'student' ? studentLinks : teacherLinks;
 
@@ -133,6 +84,29 @@ export default function Sidebar() {
     );
   }, [auth?.role]);
 
+  // Slide the glowing indicator behind the active link as the route changes.
+  useEffect(() => {
+    const moveIndicator = () => {
+      if (!navRef.current || !indicatorRef.current) return;
+      const activeEl = navRef.current.querySelector('.sidebar-link.active');
+      if (!activeEl) {
+        gsap.to(indicatorRef.current, { opacity: 0, duration: 0.2 });
+        return;
+      }
+      const { offsetTop, offsetHeight } = activeEl;
+      gsap.to(indicatorRef.current, {
+        y: offsetTop, height: offsetHeight, opacity: 1,
+        duration: 0.45, ease: 'power3.inOut',
+      });
+    };
+    const raf = requestAnimationFrame(moveIndicator);
+    window.addEventListener('resize', moveIndicator);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', moveIndicator);
+    };
+  }, [location.pathname, auth?.role]);
+
   function handleLogout() {
     logout();
     navigate('/login', { replace: true });
@@ -144,13 +118,17 @@ export default function Sidebar() {
         <h2>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 10v6M2 10l10-5 10 5-10 5z" stroke="url(#brand-grad)" strokeWidth="2" />
-            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" stroke="#818CF8" />
-            <circle cx="12" cy="10" r="1.2" fill="#818CF8" />
-            <defs><linearGradient id="brand-grad" x1="2" y1="5" x2="22" y2="16"><stop stopColor="#A5B4FC" /><stop offset="1" stopColor="#4F46E5" /></linearGradient></defs>
+            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" stroke="#D4D4D8" />
+            <circle cx="12" cy="10" r="1.2" fill="#D4D4D8" />
+            <defs><linearGradient id="brand-grad" x1="2" y1="5" x2="22" y2="16"><stop stopColor="#FFFFFF" /><stop offset="1" stopColor="#A1A1AA" /></linearGradient></defs>
           </svg>
           Vidya Setu
         </h2>
         <p>Indian Student Success AI</p>
+        <div className="sidebar-college-badge">
+          <img src={rvceLogo} alt="RV College of Engineering logo" />
+          <span>RV College of Engineering<br />Bengaluru</span>
+        </div>
       </div>
 
       {auth && (
@@ -164,6 +142,7 @@ export default function Sidebar() {
       )}
 
       <nav className="sidebar-nav" ref={navRef}>
+        <div className="sidebar-active-pill" ref={indicatorRef} />
         {links.map((link) => (
           <NavLink
             key={link.to}

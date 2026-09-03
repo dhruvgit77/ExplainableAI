@@ -6,6 +6,10 @@ import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StudentReport from '../components/StudentReport';
 import StudentFeatureForm from '../components/StudentFeatureForm';
+import AgenticProfile from '../components/AgenticProfile';
+import ShapBarChart from '../components/ShapBarChart';
+import CounterfactualPlan from '../components/CounterfactualPlan';
+import ArtifactUpload from '../components/ArtifactUpload';
 
 const Plot = PlotObj.default || PlotObj;
 
@@ -125,7 +129,19 @@ export default function Predict() {
     <div>
       <div className="page-header">
         <h1>Live Prediction</h1>
-        <p>Enter a student's <b>traditional academic record</b> and <b>modern AI-usage profile</b>. The Combined model weighs both and explains its decision with SHAP and LIME.</p>
+        <p>Enter a student's <b>traditional academic record</b> and <b>modern AI-usage profile</b>. The system auto-extracts a third tier of <b>agentic features measured from the student's work</b>, then the three-tier <b>Full</b> model predicts and explains its decision with SHAP and LIME.</p>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <ArtifactUpload
+          profile={form}
+          onResult={(r) => {
+            setResult(r);
+            setShowReport(false);
+            setCounterfactual(null);
+            setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+          }}
+        />
       </div>
 
       <form onSubmit={handleSubmit} ref={formRef}>
@@ -148,6 +164,9 @@ export default function Predict() {
                 <div className="result-value">{result.predicted_class}</div>
                 <div className="result-confidence">Confidence: {result.confidence}%</div>
               </div>
+              {result.agentic_features && (
+                <AgenticProfile agentic={result.agentic_features} className="gsap-result" />
+              )}
               <GlassCard title="Data-Driven Interventions" className="gsap-result">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Global Status */}
@@ -246,43 +265,7 @@ export default function Predict() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {result.shap && (
-                <GlassCard title="Why? (SHAP Explanation)" className="gsap-result">
-                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: 8 }}>
-                    Positive values (Green) pushed the student <b>towards</b> {result.predicted_class}.
-                  </p>
-                  <Plot
-                    data={[{ 
-                      y: result.shap.features.slice(0, 10).map((f, i) => {
-                        const val = result.shap.feature_values[i];
-                        // Clean up one-hot names: 'coaching_enrolled_Yes' with val 0 => 'Coaching: No'
-                        let label = f.replace(/_/g, ' ');
-                        if (f.includes('_Yes')) {
-                          label = label.replace(' Yes', ': ') + (val === 1 ? 'Yes' : 'No');
-                        } else if (f.includes('_No')) {
-                          label = label.replace(' No', ': ') + (val === 1 ? 'No' : 'Yes');
-                        } else if (label.includes('gender')) {
-                          // Simple mapping for demo
-                          label = 'Gender Impact';
-                        }
-                        return label;
-                      }).reverse(), 
-                      x: result.shap.shap_values.slice(0, 10).reverse(), 
-                      type: 'bar', 
-                      orientation: 'h',
-                      marker: { color: result.shap.shap_values.slice(0, 10).map((v) => v >= 0 ? '#10B981' : '#EF4444').reverse() } 
-                    }]}
-                    layout={{ 
-                      margin: { t: 10, b: 40, l: 180, r: 20 }, 
-                      paper_bgcolor: 'rgba(0,0,0,0)', 
-                      plot_bgcolor: 'rgba(0,0,0,0)',
-                      font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 10 },
-                      xaxis: { title: 'Impact', gridcolor: '#E2E8F0', zeroline: true, zerolinecolor: '#CBD5E1' },
-                      yaxis: { automargin: true }, 
-                      height: 340 
-                    }}
-                    config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
-                  />
-                </GlassCard>
+                <ShapBarChart shap={result.shap} predictedClass={result.predicted_class} className="gsap-result" />
               )}
               {result.lime && (
                 <GlassCard title="Why? (LIME Explanation)" className="gsap-result">
@@ -354,36 +337,9 @@ export default function Predict() {
           )}
 
           {counterfactual && (
-            <GlassCard title="🎯 Counterfactual Analysis — What Needs to Change" className="gsap-result" style={{ marginTop: 20 }}>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginBottom: 16 }}>{counterfactual.message}</p>
-              {counterfactual.changes_needed && counterfactual.changes_needed.length > 0 ? (
-                <div className="data-table-wrap">
-                  <table className="data-table">
-                    <thead>
-                      <tr><th>Feature</th><th>Current</th><th>→</th><th>Target</th><th>Change</th></tr>
-                    </thead>
-                    <tbody>
-                      {counterfactual.changes_needed.map((ch, i) => (
-                        <tr key={i}>
-                          <td style={{ fontWeight: 600 }}>{ch.feature.replace(/_/g, ' ')}</td>
-                          <td>{ch.current_value}</td>
-                          <td style={{ textAlign: 'center', fontSize: '1.1rem' }}>→</td>
-                          <td style={{ color: '#059669', fontWeight: 700 }}>{ch.target_value}</td>
-                          <td style={{ color: ch.change > 0 ? '#059669' : '#DC2626', fontWeight: 600 }}>
-                            {ch.change > 0 ? '+' : ''}{ch.change}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="info-box warning">Comprehensive academic support recommended — no single feature change is sufficient.</div>
-              )}
-              {counterfactual.achieved_pass && (
-                <div className="info-box success" style={{ marginTop: 12 }}>✅ With these changes, the prediction flips to <strong>Pass</strong> ({counterfactual.final_confidence}% confidence).</div>
-              )}
-            </GlassCard>
+            <div className="gsap-result" style={{ marginTop: 20 }}>
+              <CounterfactualPlan counterfactual={counterfactual} />
+            </div>
           )}
 
           {/* Printable Report */}

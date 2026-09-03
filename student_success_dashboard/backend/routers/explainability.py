@@ -1,23 +1,25 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+
+from ..auth import require_role
 from ..services import shap_service, lime_service
 
-router = APIRouter(prefix="/api/xai", tags=["Explainability"])
+router = APIRouter(prefix="/api/xai", tags=["Explainability"], dependencies=[Depends(require_role("teacher"))])
 
 
 class LocalRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
     student_index: int
-    model_name: str = "Combined"
+    model_name: str = "Full"
 
 
 @router.get("/shap/global")
-def shap_global(model_name: str = "Combined"):
+def shap_global(model_name: str = "Full"):
     return shap_service.get_global_shap(model_name)
 
 
 @router.get("/shap/dependence")
-def shap_dependence(model_name: str = "Combined", top_n: int = 6):
+def shap_dependence(model_name: str = "Full", top_n: int = 6):
     return shap_service.get_shap_dependence(model_name, top_n)
 
 

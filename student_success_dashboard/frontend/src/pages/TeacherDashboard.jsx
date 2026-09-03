@@ -2,15 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StudentFeatureForm from '../components/StudentFeatureForm';
 import StudentReport from '../components/StudentReport';
+import ReportInsights from '../components/ReportInsights';
 
 function badgeClass(predictedClass) {
-  if (predictedClass === 'Pass') return 'badge-pass';
-  if (predictedClass === 'At-Risk') return 'badge-risk';
-  if (predictedClass === 'Fail') return 'badge-fail';
+  if (predictedClass === 'Pass') return 'pass';
+  if (predictedClass === 'At-Risk') return 'risk';
+  if (predictedClass === 'Fail') return 'fail';
   return '';
 }
 
@@ -39,6 +39,18 @@ export default function TeacherDashboard() {
       { opacity: 0, y: 24 },
       { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, ease: 'power3.out' }
     );
+
+    const counters = containerRef.current.querySelectorAll('.dash-stat-value[data-count]');
+    counters.forEach((el) => {
+      const target = Number(el.dataset.count) || 0;
+      const obj = { val: 0 };
+      gsap.to(obj, {
+        val: target,
+        duration: 1,
+        ease: 'power2.out',
+        onUpdate: () => { el.textContent = Math.round(obj.val); },
+      });
+    });
   }, [students]);
 
   async function loadStudents() {
@@ -106,7 +118,8 @@ export default function TeacherDashboard() {
 
   return (
     <div ref={containerRef}>
-      <div className="page-header">
+      <div className="dash-hero">
+        <div className="dash-hero-eyebrow"><span className="dot" /> Teacher Console</div>
         <h1>Welcome, {auth?.name}</h1>
         <p>Review and update each student's academic record and AI-usage profile, then generate their explainable report.</p>
       </div>
@@ -117,44 +130,48 @@ export default function TeacherDashboard() {
         <LoadingSpinner text="Loading your class..." />
       ) : (
         <>
-          <div className="grid-3 section">
-            <div className="accent-metric gsap-fade">
-              <div className="metric-label">Total Students</div>
-              <div className="metric-value">{total}</div>
+          <div className="dash-stat-grid">
+            <div className="dash-stat-card dash-stat-card--total gsap-fade">
+              <div className="dash-stat-icon">👥</div>
+              <div className="dash-stat-label">Total Students</div>
+              <div className="dash-stat-value" data-count={total}>0</div>
             </div>
-            <div className="accent-metric gsap-fade" style={{ borderLeftColor: '#059669' }}>
-              <div className="metric-label">Pass</div>
-              <div className="metric-value" style={{ color: '#059669' }}>{pass}</div>
+            <div className="dash-stat-card dash-stat-card--pass gsap-fade">
+              <div className="dash-stat-icon">✅</div>
+              <div className="dash-stat-label">Pass</div>
+              <div className="dash-stat-value" data-count={pass}>0</div>
             </div>
-            <div className="accent-metric gsap-fade" style={{ borderLeftColor: '#D97706' }}>
-              <div className="metric-label">At-Risk</div>
-              <div className="metric-value" style={{ color: '#D97706' }}>{atRisk}</div>
+            <div className="dash-stat-card dash-stat-card--risk gsap-fade">
+              <div className="dash-stat-icon">⚠️</div>
+              <div className="dash-stat-label">At-Risk</div>
+              <div className="dash-stat-value" data-count={atRisk}>0</div>
             </div>
-            <div className="accent-metric gsap-fade" style={{ borderLeftColor: '#DC2626' }}>
-              <div className="metric-label">Fail</div>
-              <div className="metric-value" style={{ color: '#DC2626' }}>{fail}</div>
+            <div className="dash-stat-card dash-stat-card--fail gsap-fade">
+              <div className="dash-stat-icon">⛔</div>
+              <div className="dash-stat-label">Fail</div>
+              <div className="dash-stat-value" data-count={fail}>0</div>
             </div>
-            <div className="accent-metric gsap-fade" style={{ borderLeftColor: '#9CA3AF' }}>
-              <div className="metric-label">Not Yet Assessed</div>
-              <div className="metric-value" style={{ color: '#9CA3AF' }}>{notAssessed}</div>
+            <div className="dash-stat-card dash-stat-card--muted gsap-fade">
+              <div className="dash-stat-icon">📭</div>
+              <div className="dash-stat-label">Not Yet Assessed</div>
+              <div className="dash-stat-value" data-count={notAssessed}>0</div>
             </div>
           </div>
 
           {total === 0 ? (
-            <GlassCard className="section gsap-fade">
-              <div style={{ textAlign: 'center', padding: '48px 20px' }}>
-                <div className="empty-state-icon" style={{ fontSize: '3.5rem', marginBottom: 12 }}>👩‍🏫</div>
-                <h3 style={{ marginBottom: 8 }}>No students yet</h3>
-                <p style={{ color: 'var(--color-text-muted)', maxWidth: 460, margin: '0 auto' }}>
-                  Ask your students to sign up and select <strong>{auth?.name}</strong> as their teacher.
-                  They’ll appear here automatically, and you can then fill in their profile and generate a report.
-                </p>
-              </div>
-            </GlassCard>
+            <div className="dash-empty-state gsap-fade">
+              <div className="empty-state-icon" style={{ fontSize: '3.5rem', marginBottom: 12 }}>👩‍🏫</div>
+              <h3 style={{ marginBottom: 8 }}>No students yet</h3>
+              <p>
+                Ask your students to sign up and select <strong>{auth?.name}</strong> as their teacher.
+                They’ll appear here automatically, and you can then fill in their profile and generate a report.
+              </p>
+            </div>
           ) : (
-          <GlassCard title="My Students" className="section gsap-fade">
-            <div className="data-table-wrap">
-              <table className="data-table">
+          <div className="dash-table-card gsap-fade">
+            <div className="dash-section-title"><span className="bar" /> My Students</div>
+            <div className="dash-table-wrap">
+              <table className="dash-table">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -168,31 +185,23 @@ export default function TeacherDashboard() {
                 </thead>
                 <tbody>
                   {students.map((s, i) => (
-                    <tr key={s.id} className="student-row">
+                    <tr key={s.id}>
                       <td>{i + 1}</td>
                       <td>{s.name}</td>
                       <td><code>{s.username}</code></td>
                       <td>
                         {s.latest_class ? (
-                          <span className={`badge ${badgeClass(s.latest_class)}`}>{s.latest_class}</span>
+                          <span className={`dash-badge ${badgeClass(s.latest_class)}`}>{s.latest_class}</span>
                         ) : (
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>Not assessed</span>
+                          <span style={{ color: 'var(--cosmic-text-muted)', fontSize: '0.8125rem' }}>Not assessed</span>
                         )}
                       </td>
                       <td>{s.latest_confidence != null ? `${s.latest_confidence}%` : '—'}</td>
-                      <td style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+                      <td style={{ fontSize: '0.8125rem', color: 'var(--cosmic-text-muted)' }}>
                         {s.last_updated ? new Date(s.last_updated).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                       </td>
                       <td>
-                        <button
-                          className="btn"
-                          onClick={() => openStudent(s.id, s.name)}
-                          style={{
-                            padding: '6px 14px', fontSize: '0.8125rem', fontWeight: 700,
-                            background: 'var(--color-border-light)', color: 'var(--color-primary-deep)',
-                            boxShadow: 'none',
-                          }}
-                        >
+                        <button className="dash-btn-edit" onClick={() => openStudent(s.id, s.name)}>
                           Edit & Generate Report
                         </button>
                       </td>
@@ -201,18 +210,18 @@ export default function TeacherDashboard() {
                 </tbody>
               </table>
             </div>
-          </GlassCard>
+          </div>
           )}
         </>
       )}
 
       {activeId && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={closeModal}>×</button>
-            <div className="page-header" style={{ marginBottom: 16 }}>
+        <div className="dash-modal-overlay" onClick={closeModal}>
+          <div className="dash-modal-panel" onClick={(e) => e.stopPropagation()}>
+            <button className="dash-modal-close" onClick={closeModal}>×</button>
+            <div style={{ marginBottom: 16 }}>
               <h2 style={{ marginBottom: 4 }}>{studentName}</h2>
-              <p>Update the student's profile, then generate an explainable Combined-model report.</p>
+              <p>Update the student's profile, then generate an explainable Full-model report (academic + AI-usage + agentic measured-from-work signal).</p>
             </div>
 
             {modalLoading && <LoadingSpinner text="Loading student profile..." />}
@@ -222,10 +231,10 @@ export default function TeacherDashboard() {
               <>
                 <StudentFeatureForm form={form} update={update} />
                 <button
-                  className="btn btn-primary"
+                  className="auth-submit"
                   onClick={handleSaveAndGenerate}
                   disabled={saving}
-                  style={{ width: '100%', marginBottom: 24, padding: '14px 24px' }}
+                  style={{ marginBottom: 24 }}
                 >
                   {saving ? 'Saving & Generating...' : '💾 Save & Generate Report'}
                 </button>
@@ -235,8 +244,14 @@ export default function TeacherDashboard() {
             {report && (
               <>
                 <div className="divider" />
-                <h3 className="section-title">Generated Report</h3>
-                <StudentReport formData={report.formData} result={report.result} />
+                <h3 className="section-title">Prediction & Explanation</h3>
+                <ReportInsights result={report.result} />
+
+                <div className="divider" />
+                <h3 className="section-title">Printable Report</h3>
+                <div className="dash-report-frame">
+                  <StudentReport formData={report.formData} result={report.result} />
+                </div>
               </>
             )}
           </div>

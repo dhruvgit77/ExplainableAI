@@ -77,7 +77,7 @@ export default function Explainability() {
               type: 'bar', orientation: 'h',
               marker: { color: [...globalShap.importance].reverse().map((v, i, arr) => {
                 const ratio = v / Math.max(...arr);
-                return `rgba(79, 70, 229, ${0.3 + ratio * 0.7})`;
+                return `rgba(10, 10, 10, ${0.3 + ratio * 0.7})`;
               }) },
             }]}
             layout={{
@@ -111,7 +111,7 @@ export default function Explainability() {
                     marker: {
                       size: 4, opacity: 0.6,
                       color: dep.shap_values,
-                      colorscale: [[0, '#94A3B8'], [0.5, '#818CF8'], [1, '#3730A3']],
+                      colorscale: [[0, '#D4D4D8'], [0.5, '#71717A'], [1, '#0A0A0A']],
                       showscale: false,
                     },
                   }]}
@@ -165,7 +165,7 @@ export default function Explainability() {
               </div>
               <Plot
                 data={[{ y: localShap.features, x: localShap.shap_values, type: 'bar', orientation: 'h',
-                  marker: { color: localShap.shap_values.map((v) => v >= 0 ? '#4F46E5' : '#9CA3AF') } }]}
+                  marker: { color: localShap.shap_values.map((v) => v >= 0 ? '#0A0A0A' : '#D4D4D8') } }]}
                 layout={{ margin: { t: 10, b: 40, l: 200, r: 20 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                   font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 11 },
                   xaxis: { title: 'SHAP Value', gridcolor: '#E2E8F0', zeroline: true, zerolinecolor: '#CBD5E1' },
@@ -185,7 +185,7 @@ export default function Explainability() {
               <Plot
                 data={[{ y: localLime.contributions.map((c) => c.feature).reverse(),
                   x: localLime.contributions.map((c) => c.weight).reverse(), type: 'bar', orientation: 'h',
-                  marker: { color: localLime.contributions.map((c) => (c.weight >= 0 ? '#4F46E5' : '#9CA3AF')).reverse() } }]}
+                  marker: { color: localLime.contributions.map((c) => (c.weight >= 0 ? '#0A0A0A' : '#D4D4D8')).reverse() } }]}
                 layout={{ margin: { t: 10, b: 40, l: 240, r: 20 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                   font: { family: 'Plus Jakarta Sans', color: '#1E293B', size: 11 },
                   xaxis: { title: 'LIME Weight', gridcolor: '#E2E8F0', zeroline: true, zerolinecolor: '#CBD5E1' },

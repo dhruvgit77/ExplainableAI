@@ -3,21 +3,24 @@ import pandas as pd
 from lime.lime_tabular import LimeTabularExplainer
 from .model_service import get_model, load_test_data, get_feature_names, PRODUCTION_VARIANT
 
+_explainer_cache = {}
+
 
 def _build_explainer(model_name=PRODUCTION_VARIANT):
-    """Build a LIME tabular explainer using the test data as background."""
+    """Build (and cache) a LIME tabular explainer using the test data as background."""
     X_test, y_test = load_test_data(model_name)
-    feature_names = get_feature_names(model_name)
-    class_names = ["Fail", "At-Risk", "Pass"]
 
-    explainer = LimeTabularExplainer(
-        training_data=X_test.values,
-        feature_names=feature_names,
-        class_names=class_names,
-        mode="classification",
-        discretize_continuous=True,
-    )
-    return explainer, X_test
+    if model_name not in _explainer_cache:
+        feature_names = get_feature_names(model_name)
+        class_names = ["Fail", "At-Risk", "Pass"]
+        _explainer_cache[model_name] = LimeTabularExplainer(
+            training_data=X_test.values,
+            feature_names=feature_names,
+            class_names=class_names,
+            mode="classification",
+            discretize_continuous=True,
+        )
+    return _explainer_cache[model_name], X_test
 
 
 def get_local_lime(student_index: int, model_name=PRODUCTION_VARIANT):

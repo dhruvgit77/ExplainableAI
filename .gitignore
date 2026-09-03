@@ -8,3 +8,9 @@ archive_data/
 .DS_Store
 *.db
 student_success_dashboard/vidya_setu.db
+
+# Tooling / local artifacts
+.playwright-mcp/
+.claude/
+redesign-*.png
+.pytest_cache/

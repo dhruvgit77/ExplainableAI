@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StudentReport from '../components/StudentReport';
+import ReportInsights from '../components/ReportInsights';
 
 export default function StudentDashboard() {
   const { auth } = useAuth();
@@ -27,7 +27,8 @@ export default function StudentDashboard() {
 
   return (
     <div ref={containerRef}>
-      <div className="page-header">
+      <div className="dash-hero">
+        <div className="dash-hero-eyebrow"><span className="dot" /> Student Report</div>
         <h1>Welcome, {auth?.name}</h1>
         <p>This is your latest performance report, generated and verified by your teacher.</p>
       </div>
@@ -37,20 +38,23 @@ export default function StudentDashboard() {
       {!report && !error && <LoadingSpinner text="Loading your report..." />}
 
       {report && !report.has_report && (
-        <GlassCard className="section gsap-fade">
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <div className="empty-state-icon" style={{ fontSize: '3.5rem', marginBottom: 12 }}>📭</div>
-            <h3 style={{ marginBottom: 8 }}>No report yet</h3>
-            <p style={{ color: 'var(--color-text-muted)' }}>
-              Your teacher hasn't generated your report yet. Check back after your profile has been reviewed.
-            </p>
-          </div>
-        </GlassCard>
+        <div className="dash-empty-state gsap-fade">
+          <div className="empty-state-icon" style={{ fontSize: '3.5rem', marginBottom: 12 }}>📭</div>
+          <h3 style={{ marginBottom: 8 }}>No report yet</h3>
+          <p>
+            Your teacher hasn't generated your report yet. Check back after your profile has been reviewed.
+          </p>
+        </div>
       )}
 
       {report && report.has_report && (
-        <div className="section gsap-fade">
-          <StudentReport formData={report.profile_snapshot} result={report.result} />
+        <div className="gsap-fade">
+          <ReportInsights result={report.result} />
+          <div className="divider" />
+          <h3 className="section-title">Printable Report</h3>
+          <div className="dash-report-frame">
+            <StudentReport formData={report.profile_snapshot} result={report.result} />
+          </div>
         </div>
       )}
     </div>
