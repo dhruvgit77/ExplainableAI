@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, SessionLocal, engine
-from .routers import eda, models, explainability, bias, predict, auth, teacher, student
+from .routers import eda, models, explainability, bias, predict, auth, teacher, student, news, artifacts
 from .seed import seed_initial_data
 
 app = FastAPI(
@@ -13,7 +13,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,6 +27,8 @@ app.include_router(predict.router)
 app.include_router(auth.router)
 app.include_router(teacher.router)
 app.include_router(student.router)
+app.include_router(news.router)
+app.include_router(artifacts.router)
 
 
 @app.on_event("startup")

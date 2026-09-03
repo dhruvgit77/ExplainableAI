@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from ..auth import require_role
 from ..database import get_db
 from ..db_models import Report, StudentProfile as StudentProfileDB, User
-from ..services import lime_service, model_service, shap_service
+from ..services import (
+    agentic_extraction_service, lime_service, model_service, shap_service,
+)
 from .predict import StudentProfile as StudentProfileSchema
 
 router = APIRouter(prefix="/api/teacher", tags=["Teacher"])
@@ -106,11 +108,31 @@ def generate_report(
         raise HTTPException(status_code=404, detail="Student has no profile record")
 
     input_data = profile.to_dict()
-    prediction = model_service.predict_student(input_data)
-    shap_explanation = shap_service.get_shap_for_input(prediction["processed_features"], "Combined")
-    lime_explanation = lime_service.get_lime_for_input(prediction["processed_features"], "Combined")
 
-    result = {**prediction, "shap": shap_explanation, "lime": lime_explanation}
+    # Tier-3 agentic features are auto-extracted from the student's record so the
+    # report carries the full three-tier picture (academic + AI-usage + measured).
+    agentic = agentic_extraction_service.estimate_from_record(input_data)
+    enriched_input = {**input_data, **agentic}
+
+    prediction = model_service.predict_student(enriched_input)
+    variant = model_service.PRODUCTION_VARIANT
+    shap_explanation = shap_service.get_shap_for_input(prediction["processed_features"], variant)
+    lime_explanation = lime_service.get_lime_for_input(prediction["processed_features"], variant)
+
+    # Pre-compute the counterfactual recourse plan for non-Pass students so the
+    # stored report is a complete, self-contained snapshot that both the teacher
+    # and the (read-only) student can view without any further API calls.
+    counterfactual = None
+    if prediction["predicted_class"] != "Pass":
+        counterfactual = model_service.get_counterfactual(input_data)
+
+    result = {
+        **prediction,
+        "agentic_features": agentic,
+        "shap": shap_explanation,
+        "lime": lime_explanation,
+        "counterfactual": counterfactual,
+    }
     result.pop("processed_features", None)
 
     report = Report(

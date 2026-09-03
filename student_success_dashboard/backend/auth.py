@@ -3,15 +3,23 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .database import get_db
 from .db_models import User
 
-SECRET_KEY = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod")
+APP_ENV = os.environ.get("APP_ENV", "development")
+_DEV_SECRET = "dev-secret-change-in-prod"
+SECRET_KEY = os.environ.get("JWT_SECRET", _DEV_SECRET)
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 12
+COOKIE_NAME = "vs_token"
+
+if APP_ENV != "development" and SECRET_KEY == _DEV_SECRET:
+    raise RuntimeError(
+        "JWT_SECRET must be set via environment variable when APP_ENV is not 'development'."
+    )
 
 
 def hash_password(password: str) -> str:
@@ -40,11 +48,18 @@ def decode_token(token: str) -> dict:
 
 
 def get_current_user(
-    authorization: str = Header(None), db: Session = Depends(get_db)
+    authorization: str = Header(None),
+    vs_token: str = Cookie(None),
+    db: Session = Depends(get_db),
 ) -> User:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
-    token = authorization.split(" ", 1)[1]
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+    elif vs_token:
+        token = vs_token
+
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authentication token")
     payload = decode_token(token)
     user = db.query(User).filter(User.id == int(payload["sub"])).first()
     if not user:

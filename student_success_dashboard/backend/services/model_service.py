@@ -1,4 +1,6 @@
 import os
+from functools import lru_cache
+
 import joblib
 import pandas as pd
 import numpy as np
@@ -10,9 +12,23 @@ from sklearn.metrics import (
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'models')
 CLASS_NAMES = ["Fail", "At-Risk", "Pass"]
-PRODUCTION_VARIANT = "Combined"
+# The evolved flagship: all three feature tiers (traditional + modern + agentic).
+PRODUCTION_VARIANT = "Full"
 
 _artifacts = None
+
+
+def _ensure_agentic(record: dict, model_name: str) -> dict:
+    """For models that need Tier-3 agentic inputs (e.g. 'Full'), fill any missing
+    agentic features by running the extraction service. Manual-entry forms only
+    provide Tier 1+2; the agentic tier is auto-derived from the student here so the
+    rest of the pipeline stays unchanged. Models that don't use agentic columns
+    (Traditional/Modern/Combined) are returned untouched."""
+    cols = get_input_columns(model_name)
+    if all(c in record for c in cols):
+        return record
+    from .agentic_extraction_service import estimate_from_record
+    return {**record, **estimate_from_record(record)}
 
 
 def _load_artifacts():
@@ -62,15 +78,25 @@ def load_test_data(name=PRODUCTION_VARIANT):
     return _variant(name)['X_test'], art['y_test']
 
 
+@lru_cache(maxsize=1)
 def get_feature_weights():
     """Per-variant normalised feature importances, tagged traditional/modern."""
     art = _load_artifacts()
-    # Traditional raw columns come from the Traditional variant definition.
+    # Tier membership comes from each tier's own variant definition.
     trad = _variant('Traditional')
     trad_cols = set(trad['numeric'] + trad['categorical'])
+    try:
+        agentic = _variant('Agentic')
+        agentic_cols = set(agentic['numeric'] + agentic['categorical'])
+    except (KeyError, StopIteration):
+        agentic_cols = set()
 
     def _group(raw_feature):
-        return 'traditional' if raw_feature in trad_cols else 'modern'
+        if raw_feature in trad_cols:
+            return 'traditional'
+        if raw_feature in agentic_cols:
+            return 'agentic'
+        return 'modern'
 
     def _raw_of(feature_name, numeric, categorical):
         # numeric feature names are unchanged; one-hot names look like
@@ -103,6 +129,7 @@ def get_feature_weights():
 
 
 # ── Evaluation across the three variants ────────────────────────────────
+@lru_cache(maxsize=1)
 def evaluate_all_models():
     art = _load_artifacts()
     y_test = art['y_test']
@@ -179,6 +206,7 @@ def evaluate_all_models():
 
 # ── Prediction (uses the production Combined model by default) ───────────
 def predict_student(input_data: dict, model_name: str = PRODUCTION_VARIANT):
+    input_data = _ensure_agentic(input_data, model_name)
     preprocessor = get_preprocessor(model_name)
     feature_names = get_feature_names(model_name)
     model = get_model(model_name)
@@ -202,6 +230,7 @@ def predict_student(input_data: dict, model_name: str = PRODUCTION_VARIANT):
 
 def predict_batch(records: list, model_name: str = PRODUCTION_VARIANT):
     """Predict for multiple students at once."""
+    records = [_ensure_agentic(r, model_name) for r in records]
     preprocessor = get_preprocessor(model_name)
     feature_names = get_feature_names(model_name)
     model = get_model(model_name)
@@ -235,13 +264,26 @@ def predict_batch(records: list, model_name: str = PRODUCTION_VARIANT):
 
 
 def get_counterfactual(input_data: dict, model_name: str = PRODUCTION_VARIANT):
-    """Find minimum changes to flip prediction to Pass."""
+    """Find minimum changes to flip prediction to Pass.
+
+    Recourse is searched over the actionable Tier-1/Tier-2 levers below. The
+    Tier-3 agentic features are RE-DERIVED for every candidate (not held fixed),
+    so improving e.g. CGPA / study effort also lifts the measured comprehension &
+    engagement scores — making the recommended changes realistic and achievable on
+    the Full model rather than artificially capped by stale agentic values.
+    """
+    from .agentic_extraction_service import estimate_from_record, AGENTIC_FEATURES
+
     preprocessor = get_preprocessor(model_name)
     feature_names = get_feature_names(model_name)
     model = get_model(model_name)
     cols = get_input_columns(model_name)
+    needs_agentic = any(c in cols for c in AGENTIC_FEATURES)
 
     def _predict(d):
+        if needs_agentic:
+            base = {k: v for k, v in d.items() if k not in AGENTIC_FEATURES}
+            d = {**base, **estimate_from_record(base)}
         frame = pd.DataFrame([d])[cols]
         proc = pd.DataFrame(preprocessor.transform(frame), columns=feature_names)
         return int(model.predict(proc)[0]), model.predict_proba(proc)[0].tolist()
@@ -273,30 +315,51 @@ def get_counterfactual(input_data: dict, model_name: str = PRODUCTION_VARIANT):
         "financial_stress": {"min": 1, "max": 10, "step": 1, "direction": "decrease"},
     }
 
-    changes = []
+    # ── Coordinate-ascent search on P(Pass) ─────────────────────────────────
+    # At each round, take the single lever step that most increases the Pass
+    # probability, commit it, and repeat until the prediction flips to Pass (or
+    # no step helps). This accumulates partial progress, so students who need
+    # several combined changes get a realistic multi-lever recourse plan instead
+    # of "no changes possible".
+    PASS = 2
     modified = dict(input_data)
+    committed = {}  # feature -> latest value
 
-    for feature, config in tweakable.items():
-        original_val = input_data.get(feature)
-        if original_val is None:
-            continue
+    def _pass_prob(d):
+        return _predict(d)[1][PASS]
 
-        step = config["step"] if config["direction"] == "increase" else -config["step"]
-        val = original_val
-        while config["min"] <= val + step <= config["max"]:
-            val += step
-            test_data = dict(modified)
-            test_data[feature] = val
-            pred, _ = _predict(test_data)
-            if pred == 2:  # Pass
-                changes.append({
-                    "feature": feature,
-                    "current_value": original_val,
-                    "target_value": round(val, 2),
-                    "change": round(val - original_val, 2),
-                })
-                modified[feature] = val
-                break
+    MAX_ROUNDS = 40
+    for _ in range(MAX_ROUNDS):
+        if _predict(modified)[0] == PASS:
+            break
+        base_p = _pass_prob(modified)
+        best = None  # (gain, feature, new_value)
+        for feature, config in tweakable.items():
+            if input_data.get(feature) is None:
+                continue
+            step = config["step"] if config["direction"] == "increase" else -config["step"]
+            cur = modified.get(feature, input_data[feature])
+            nxt = cur + step
+            if not (config["min"] <= nxt <= config["max"]):
+                continue
+            gain = _pass_prob({**modified, feature: nxt}) - base_p
+            if best is None or gain > best[0]:
+                best = (gain, feature, nxt)
+        if best is None or best[0] <= 1e-4:  # stuck at a local optimum
+            break
+        _, feature, nxt = best
+        modified[feature] = nxt
+        committed[feature] = nxt
+
+    changes = [
+        {
+            "feature": f,
+            "current_value": input_data.get(f),
+            "target_value": round(v, 2),
+            "change": round(v - input_data.get(f), 2),
+        }
+        for f, v in committed.items()
+    ]
 
     final_pred, final_probs = _predict(modified)
 

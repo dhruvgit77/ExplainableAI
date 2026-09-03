@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+from functools import lru_cache
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'student_data.csv')
 
@@ -14,6 +15,7 @@ def _load_df():
     return _df_cache
 
 
+@lru_cache(maxsize=1)
 def get_summary():
     df = _load_df()
     return {
@@ -24,17 +26,20 @@ def get_summary():
     }
 
 
+@lru_cache(maxsize=8)
 def get_preview(n=10):
     df = _load_df()
     return df.head(n).to_dict(orient="records")
 
 
+@lru_cache(maxsize=1)
 def get_target_distribution():
     df = _load_df()
     counts = df["target"].value_counts()
     return {"labels": counts.index.tolist(), "values": counts.values.tolist()}
 
 
+@lru_cache(maxsize=1)
 def get_cgpa_by_target():
     df = _load_df()
     result = []
@@ -47,6 +52,7 @@ def get_cgpa_by_target():
     return result
 
 
+@lru_cache(maxsize=1)
 def get_correlation_matrix():
     df = _load_df()
     numeric_df = df.select_dtypes(include=["float64", "int64"])
@@ -57,6 +63,7 @@ def get_correlation_matrix():
     }
 
 
+@lru_cache(maxsize=1)
 def get_feature_distributions():
     """Distribution of all numeric features split by target outcome."""
     df = _load_df()
@@ -78,6 +85,7 @@ def get_feature_distributions():
     return result
 
 
+@lru_cache(maxsize=1)
 def get_categorical_distributions():
     """Distribution of categorical features split by target outcome."""
     df = _load_df()

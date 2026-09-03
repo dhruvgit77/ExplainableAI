@@ -5,7 +5,7 @@ import * as THREE from 'three';
 const PARTICLE_COUNT = 120;
 const CONNECTION_DISTANCE = 2.8;
 
-function Particles() {
+function Particles({ dotColor, lineColor, dotOpacity, lineOpacity }) {
   const meshRef = useRef();
   const linesRef = useRef();
 
@@ -88,9 +88,9 @@ function Particles() {
         </bufferGeometry>
         <pointsMaterial
           size={0.06}
-          color="#4F46E5"
+          color={dotColor}
           transparent
-          opacity={0.6}
+          opacity={dotOpacity}
           sizeAttenuation
           depthWrite={false}
         />
@@ -99,9 +99,9 @@ function Particles() {
       <lineSegments ref={linesRef}>
         <bufferGeometry />
         <lineBasicMaterial
-          color="#818CF8"
+          color={lineColor}
           transparent
-          opacity={0.12}
+          opacity={lineOpacity}
           depthWrite={false}
         />
       </lineSegments>
@@ -109,7 +109,12 @@ function Particles() {
   );
 }
 
-export default function ParticleBackground() {
+/**
+ * `theme="dark"` (default) renders vivid violet/cyan dust for the cosmic Login backdrop.
+ * `theme="light"` renders a faint indigo dust suitable as ambient texture over the light app shell.
+ */
+export default function ParticleBackground({ theme = 'dark' }) {
+  const isLight = theme === 'light';
   return (
     <div
       style={{
@@ -128,7 +133,12 @@ export default function ParticleBackground() {
         style={{ background: 'transparent' }}
         dpr={[1, 1.5]}
       >
-        <Particles />
+        <Particles
+          dotColor={isLight ? '#71717A' : '#FFFFFF'}
+          lineColor={isLight ? '#27272A' : '#D4D4D8'}
+          dotOpacity={isLight ? 0.22 : 0.7}
+          lineOpacity={isLight ? 0.05 : 0.14}
+        />
       </Canvas>
     </div>
   );

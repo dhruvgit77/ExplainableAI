@@ -7,9 +7,17 @@ try:
     from .real_modern import (
         load_real_modern, MODERN_NUMERIC, MODERN_CATEGORICAL,
     )
+    from .agentic_features import (
+        generate_agentic_features, agentic_subscore,
+        AGENTIC_NUMERIC, AGENTIC_CATEGORICAL,
+    )
 except ImportError:  # run as a script
     from real_modern import (
         load_real_modern, MODERN_NUMERIC, MODERN_CATEGORICAL,
+    )
+    from agentic_features import (
+        generate_agentic_features, agentic_subscore,
+        AGENTIC_NUMERIC, AGENTIC_CATEGORICAL,
     )
 
 
@@ -102,7 +110,17 @@ def generate_synthetic_data(num_records=6000, random_seed=42):
         df[col] = sampled[col].values
 
     # ==================================================================
-    # PART C — OUTCOME: blend of traditional + real-modern signal
+    # PART B2 — AGENTIC FEATURES (Tier 3, measured-from-artifacts)
+    # Synthesised from latent competence / ai-dependence traits that also
+    # drive the Tier-1/Tier-2 signals. In production these are replaced by
+    # the real extraction pipeline (identical schema).
+    # ==================================================================
+    agentic = generate_agentic_features(df, random_seed=random_seed)
+    for col in AGENTIC_NUMERIC + AGENTIC_CATEGORICAL:
+        df[col] = agentic[col].values
+
+    # ==================================================================
+    # PART C — OUTCOME: blend of traditional + real-modern + agentic signal
     # ==================================================================
 
     # ----- Traditional sub-score (~0..100) -----
@@ -155,10 +173,19 @@ def generate_synthetic_data(num_records=6000, random_seed=42):
     def _z(x):
         return (x - np.mean(x)) / (np.std(x) + 1e-9)
 
-    # Traditional academic record is a slightly stronger, cleaner driver of the
-    # pass/fail outcome; modern AI-usage behaviour remains a major contributor.
-    W_TRADITIONAL, W_MODERN = 0.58, 0.42
-    combined = W_TRADITIONAL * _z(traditional_score) + W_MODERN * _z(modern_score)
+    # ----- Agentic sub-score (built ENTIRELY from the Tier-3 measured features) -----
+    agentic_score = agentic_subscore(agentic)
+
+    # Three-tier blend. Traditional academic record stays the strongest single
+    # driver; modern self-reported behaviour and agentic measured-from-work signal
+    # are both major contributors. The agentic tier adds genuinely NEW structure
+    # (cross-modal gaming gap, trajectory) that neither earlier tier captures.
+    W_TRADITIONAL, W_MODERN, W_AGENTIC = 0.46, 0.27, 0.27
+    combined = (
+        W_TRADITIONAL * _z(traditional_score)
+        + W_MODERN * _z(modern_score)
+        + W_AGENTIC * _z(agentic_score)
+    )
     combined += np.random.normal(0, 0.06, n)  # irreducible noise -> realistic, not perfectly separable
 
     fail_cut, pass_cut = np.quantile(combined, [0.27, 0.60])

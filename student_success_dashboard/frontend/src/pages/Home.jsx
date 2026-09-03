@@ -2,58 +2,41 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import gsap from 'gsap';
 import MetricCard from '../components/MetricCard';
+import NewsFeed from '../components/NewsFeed';
 
 const sections = [
   {
-    to: '/eda',
-    label: 'Data Insights',
-    value: 'Explore Patterns',
+    to: '/teacher',
+    label: 'My Students',
+    value: 'Class Overview',
     icon: (
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="var(--color-primary)" />
-        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="var(--color-primary)" />
-        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="var(--color-primary)" />
-        <path d="M17.5 14v7M14 17.5h7" stroke="var(--color-primary)" strokeWidth="2" />
+        <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" stroke="var(--color-primary)" />
+        <circle cx="10" cy="7" r="4" stroke="var(--color-primary)" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="var(--color-primary)" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="var(--color-primary)" />
       </svg>
     ),
   },
   {
-    to: '/models',
-    label: 'Model Bench',
-    value: 'Compare Classifiers',
+    to: '/predict',
+    label: 'Live Prediction',
+    value: 'Predict a Student',
     icon: (
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 3v18h18" stroke="var(--color-primary)" strokeWidth="2" />
-        <path d="M7 16l4-6 4 4 5-8" stroke="var(--color-primary-light)" strokeWidth="2" />
-        <circle cx="7" cy="16" r="1.5" fill="var(--color-primary)" />
-        <circle cx="11" cy="10" r="1.5" fill="var(--color-primary)" />
-        <circle cx="15" cy="14" r="1.5" fill="var(--color-primary)" />
-        <circle cx="20" cy="6" r="1.5" fill="var(--color-primary)" />
+        <path d="M13 2L4.1 13.4a1 1 0 0 0 .8 1.6H11l-1 7 8.9-11.4a1 1 0 0 0-.8-1.6H13l0-7z" stroke="var(--color-primary)" strokeWidth="1.8" />
       </svg>
     ),
   },
   {
-    to: '/explainability',
-    label: 'XAI Engine',
-    value: 'SHAP & LIME',
+    to: '/batch',
+    label: 'Batch Upload',
+    value: 'Score Entire Class',
     icon: (
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9" stroke="var(--color-primary)" />
-        <path d="M12 8a2.5 2.5 0 0 1 1.8 4.2c-.5.6-1.3 1-1.8 1.6V15" stroke="var(--color-primary)" strokeWidth="2" />
-        <circle cx="12" cy="17.5" r="0.5" fill="var(--color-primary)" stroke="var(--color-primary)" />
-      </svg>
-    ),
-  },
-  {
-    to: '/bias',
-    label: 'Fairness Audit',
-    value: 'Equity Check',
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3v18" stroke="var(--color-primary)" strokeWidth="2" />
-        <path d="M3 7h18" stroke="var(--color-primary)" />
-        <path d="M6 7l-2 8c0 1.1 1.3 2 3 2s3-.9 3-2L8 7" stroke="var(--color-primary)" />
-        <path d="M16 7l-2 8c0 1.1 1.3 2 3 2s3-.9 3-2l-2-8" stroke="var(--color-primary)" />
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="var(--color-primary)" />
+        <polyline points="17 8 12 3 7 8" stroke="var(--color-primary)" />
+        <line x1="12" y1="3" x2="12" y2="15" stroke="var(--color-primary)" />
       </svg>
     ),
   },
@@ -129,18 +112,19 @@ export default function Home() {
           🇮🇳 Vidya Setu — Indian Student Success Platform
         </h1>
         <p className="hero-subtitle">
-          Explainable AI for the AI era. Vidya Setu predicts student outcomes from both <b>traditional academic records</b> and
-          <b> modern AI-usage behaviour</b> — rewarding genuine AI-augmented learning and flagging blind copy-pasting.
+          Explainable AI for the AI era. Vidya Setu predicts student outcomes from <b>traditional academic records</b>,
+          <b> modern AI-usage behaviour</b>, and a third tier of <b>agentic features measured from the student's own work</b> —
+          rewarding genuine AI-augmented learning and flagging blind copy-pasting.
         </p>
 
         <div className="grid-3" style={{ marginTop: 24 }}>
-          <AnimatedStat value={27} label="Features (Traditional + Real AI)" />
-          <AnimatedStat value={5} label="ML Models Compared" />
-          <AnimatedStat value={86} label="Combined Accuracy" suffix="%" />
+          <AnimatedStat value={38} label="Features (Traditional + AI + Agentic)" />
+          <AnimatedStat value={3} label="Feature Tiers Fused" />
+          <AnimatedStat value={87} label="Full Model Accuracy" suffix="%" />
         </div>
       </div>
 
-      <div className="grid-4 section" ref={cardsRef}>
+      <div className="grid-3 section" ref={cardsRef}>
         {sections.map((s) => (
           <Link to={s.to} key={s.to} style={{ textDecoration: 'none' }}>
             <MetricCard icon={s.icon} label={s.label} value={s.value} />
@@ -148,15 +132,18 @@ export default function Home() {
         ))}
       </div>
 
+      <NewsFeed />
+
       <div className="glass-card gsap-fade">
         <h3 style={{ marginBottom: 16 }}>About the Platform</h3>
         <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.8, fontSize: 'var(--font-base)' }}>
-          Vidya Setu compares <b>five ML models</b> (Logistic Regression, Random Forest, Extra Trees, Gradient Boosting and
-          XGBoost) across three feature sets — a <b>Traditional</b> model (CGPA, attendance, marks, coaching, regional factors),
-          a <b>Modern</b> model built on <b>real survey data</b> of AI-usage behaviour (reliance, verification, independence
-          after AI, assignment outsourcing, digital distraction), and a <b>Combined</b> model that uses both. Each model is
-          selected with leak-free cross-validation; adding the real AI-usage signal lifts accuracy from ~68% to ~86%. Every
-          prediction is explained with SHAP and LIME, and audited for bias across gender, region, and degree program.
+          Vidya Setu predicts whether each student will <b>Pass, be At-Risk, or Fail</b> using a three-tier XGBoost model
+          trained on 38 features: a <b>Traditional</b> tier (CGPA, attendance, marks, coaching, regional factors),
+          a <b>Modern</b> tier of AI-usage behaviour (reliance, verification, assignment outsourcing, digital distraction),
+          and an <b>Agentic</b> tier measured from the student's actual work (comprehension depth, code originality,
+          cross-modal consistency, learning trajectory). Every prediction comes with <b>SHAP explanations</b> showing
+          exactly which factors drove the result, and a <b>counterfactual plan</b> showing the minimum changes needed
+          to flip the outcome to Pass.
         </p>
       </div>
     </div>

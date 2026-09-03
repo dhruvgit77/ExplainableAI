@@ -5,14 +5,16 @@ import GlassCard from '../components/GlassCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useGsapOnData } from '../hooks/useGsap';
 
-const PALETTE = ['#4F46E5', '#818CF8', '#3730A3', '#C7D2FE'];
+const PALETTE = ['#A1A1AA', '#D4D4D8', '#7C3AED', '#52525B', '#0A0A0A'];
 const Plot = PlotObj.default || PlotObj;
 const CLASS_LABELS = ['Fail', 'At-Risk', 'Pass'];
 
 const VARIANT_BLURB = {
   Traditional: 'Only classic academic signals (CGPA, attendance, marks, study hours, demographics).',
   Modern: 'Only real survey AI-usage behaviour (reliance, verification, independence after AI, assignment outsourcing, digital distraction).',
-  Combined: 'Both feature groups together — the production model.',
+  Agentic: 'Only Tier-3 features measured from the student\'s actual work (AI-authenticity risk, comprehension depth, reasoning coherence, code originality, cross-modal consistency, learning trajectory).',
+  Combined: 'Traditional + Modern self-reported features together.',
+  Full: 'All three tiers — Traditional + Modern + Agentic. The production model.',
 };
 
 export default function ModelComparison() {
@@ -28,7 +30,7 @@ export default function ModelComparison() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <LoadingSpinner text="Evaluating Traditional / Modern / Combined models..." />;
+  if (loading) return <LoadingSpinner text="Evaluating Traditional / Modern / Agentic / Combined / Full models..." />;
   if (!data) return <p>Failed to load model evaluation.</p>;
 
   const { metrics, confusion_matrices, roc_curves, per_class_metrics, selection, leaderboard } = data;
@@ -46,8 +48,8 @@ export default function ModelComparison() {
   return (
     <div ref={containerRef}>
       <div className="page-header">
-        <h1>Model Comparison — Traditional vs Modern vs Combined</h1>
-        <p>Five ML algorithms (Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, XGBoost) compared with leak-free 5-fold cross-validation across three feature sets. The best model is selected per set; adding the real AI-usage signal is what makes the Combined model win.</p>
+        <h1>Model Comparison — Traditional vs Modern vs Agentic vs Combined vs Full</h1>
+        <p>Five ML algorithms (Logistic Regression, Random Forest, Extra Trees, Gradient Boosting, XGBoost) compared with leak-free 5-fold cross-validation across five feature sets. The best model is selected per set. The <b>Agentic</b> tier — features measured from the student's actual work — outpredicts both Traditional and self-reported Modern features alone, and the three-tier <b>Full</b> model is the strongest overall.</p>
       </div>
 
       {/* Model selection + cross-validation (no-overfit evidence) */}
@@ -92,7 +94,7 @@ export default function ModelComparison() {
       )}
 
       {/* Per-set algorithm leaderboard (CV accuracy of every candidate) */}
-      {leaderboard?.Combined?.length > 0 && (
+      {leaderboard?.Full?.length > 0 && (
         <GlassCard title="Algorithm Leaderboard — 5-fold CV Accuracy" className="section gsap-fade">
           <div className="data-table-wrap">
             <table className="data-table">
@@ -100,7 +102,7 @@ export default function ModelComparison() {
                 <tr><th>Algorithm</th>{modelNames.map((n) => <th key={n}>{n}</th>)}</tr>
               </thead>
               <tbody>
-                {leaderboard.Combined.map((row) => {
+                {leaderboard.Full.map((row) => {
                   const algo = row.model;
                   return (
                     <tr key={algo}>
@@ -207,30 +209,36 @@ export default function ModelComparison() {
         <GlassCard title="What the comparison shows" className="gsap-fade">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="info-box warning"><strong>Traditional only:</strong> {VARIANT_BLURB.Traditional} Captures real but partial signal.</div>
-            <div className="info-box warning"><strong>Modern only:</strong> {VARIANT_BLURB.Modern} Weak alone, but it carries signal traditional features miss.</div>
-            <div className="info-box"><strong>Combined:</strong> {VARIANT_BLURB.Combined} Highest accuracy &amp; AUC — adding real AI-usage behaviour to the academic record is what lifts performance from ~68% to ~86%.</div>
+            <div className="info-box warning"><strong>Modern only:</strong> {VARIANT_BLURB.Modern} Weakest alone — self-report is noisy and gameable.</div>
+            <div className="info-box"><strong>Agentic only:</strong> {VARIANT_BLURB.Agentic} Outpredicts both Traditional and Modern on its own — measured-from-work beats self-report.</div>
+            <div className="info-box"><strong>Full:</strong> {VARIANT_BLURB.Full} Highest accuracy &amp; AUC — adding the measured agentic tier lifts performance well above the Combined two-tier model.</div>
           </div>
         </GlassCard>
       </div>
 
       <div className="divider" />
 
-      {/* Feature Weights: traditional vs modern in the Combined model */}
-      {weights?.Combined?.features?.length > 0 && (() => {
-        const feats = weights.Combined.features;
+      {/* Feature Weights: traditional vs modern vs agentic in the Full model */}
+      {weights?.Full?.features?.length > 0 && (() => {
+        const feats = weights.Full.features;
         const top = feats.slice(0, 15);
-        const TRAD_COLOR = '#0EA5E9';
-        const MOD_COLOR = '#4F46E5';
-        const tradTotal = feats.filter((f) => f.group === 'traditional').reduce((s, f) => s + f.importance, 0);
-        const modTotal = feats.filter((f) => f.group === 'modern').reduce((s, f) => s + f.importance, 0);
-        const tradPct = Math.round((tradTotal / (tradTotal + modTotal || 1)) * 100);
+        const GROUP_COLOR = { traditional: '#A1A1AA', modern: '#52525B', agentic: '#7C3AED' };
+        const totals = {
+          traditional: feats.filter((f) => f.group === 'traditional').reduce((s, f) => s + f.importance, 0),
+          modern: feats.filter((f) => f.group === 'modern').reduce((s, f) => s + f.importance, 0),
+          agentic: feats.filter((f) => f.group === 'agentic').reduce((s, f) => s + f.importance, 0),
+        };
+        const grand = totals.traditional + totals.modern + totals.agentic || 1;
+        const pct = (g) => Math.round((totals[g] / grand) * 100);
         return (
           <>
-            <h3 className="section-title gsap-fade">Combined Model — Feature Weights</h3>
+            <h3 className="section-title gsap-fade">Full Model — Feature Weights</h3>
             <p className="gsap-fade" style={{ marginBottom: 16, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-              The production model draws on <span style={{ color: TRAD_COLOR, fontWeight: 700 }}>traditional</span> and
-              {' '}<span style={{ color: MOD_COLOR, fontWeight: 700 }}>modern AI-usage</span> features together —
-              roughly <strong>{tradPct}% traditional / {100 - tradPct}% modern</strong> of total importance.
+              The production model draws on three tiers:{' '}
+              <span style={{ color: GROUP_COLOR.traditional, fontWeight: 700 }}>traditional</span>,{' '}
+              <span style={{ color: GROUP_COLOR.modern, fontWeight: 700 }}>modern AI-usage</span> and{' '}
+              <span style={{ color: GROUP_COLOR.agentic, fontWeight: 700 }}>agentic (measured-from-work)</span> —
+              roughly <strong>{pct('traditional')}% / {pct('modern')}% / {pct('agentic')}%</strong> of total importance.
             </p>
             <div className="grid-2-1 section">
               <GlassCard title="Top 15 Features by Importance" className="gsap-fade">
@@ -239,7 +247,7 @@ export default function ModelComparison() {
                     y: top.map((f) => f.feature.replace(/_/g, ' ')).reverse(),
                     x: top.map((f) => f.importance).reverse(),
                     type: 'bar', orientation: 'h',
-                    marker: { color: top.map((f) => f.group === 'traditional' ? TRAD_COLOR : MOD_COLOR).reverse() },
+                    marker: { color: top.map((f) => GROUP_COLOR[f.group] || '#0A0A0A').reverse() },
                   }]}
                   layout={{
                     margin: { t: 10, b: 40, l: 200, r: 20 },
@@ -251,15 +259,15 @@ export default function ModelComparison() {
                   config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
                 />
               </GlassCard>
-              <GlassCard title="Importance by Group" className="gsap-fade">
+              <GlassCard title="Importance by Tier" className="gsap-fade">
                 <Plot
                   data={[{
-                    labels: ['Traditional', 'Modern (AI-era)'],
-                    values: [tradTotal, modTotal],
+                    labels: ['Traditional', 'Modern (self-report)', 'Agentic (measured)'],
+                    values: [totals.traditional, totals.modern, totals.agentic],
                     type: 'pie', hole: 0.55,
-                    marker: { colors: [TRAD_COLOR, MOD_COLOR] },
+                    marker: { colors: [GROUP_COLOR.traditional, GROUP_COLOR.modern, GROUP_COLOR.agentic] },
                     textinfo: 'label+percent',
-                    textfont: { family: 'Plus Jakarta Sans', size: 13 },
+                    textfont: { family: 'Plus Jakarta Sans', size: 12 },
                   }]}
                   layout={{
                     margin: { t: 10, b: 10, l: 10, r: 10 },
@@ -270,9 +278,9 @@ export default function ModelComparison() {
                   config={{ displayModeBar: false, responsive: true }} style={{ width: '100%' }}
                 />
                 <div className="info-box" style={{ marginTop: 12 }}>
-                  Traditional features are <strong>not obsolete</strong> — they still carry substantial weight. The real
-                  AI-usage features add the missing signal that flips inflated records (heavy reliance, no verification,
-                  outsourced assignments) to At-Risk / Fail.
+                  The <strong>agentic tier</strong> — features measured directly from student work — carries substantial
+                  weight despite being the newest layer. It captures what self-report misses: genuine comprehension,
+                  AI-authenticity, and the cross-modal gap that flags polished-but-hollow submissions.
                 </div>
               </GlassCard>
             </div>
@@ -322,7 +330,7 @@ export default function ModelComparison() {
           <GlassCard key={name} title={name} className="gsap-fade">
             <Plot
               data={[{ z: confusion_matrices[name], x: CLASS_LABELS, y: CLASS_LABELS, type: 'heatmap',
-                colorscale: [[0, '#EEF2FF'], [1, '#4F46E5']],
+                colorscale: [[0, '#F4F4F5'], [1, '#0A0A0A']],
                 text: confusion_matrices[name].map((row) => row.map(String)),
                 texttemplate: '%{text}', showscale: false }]}
               layout={{

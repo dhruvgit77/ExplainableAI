@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from sklearn.metrics import accuracy_score
 from .model_service import get_model, load_test_data, get_raw_test, PRODUCTION_VARIANT
 
@@ -8,6 +10,7 @@ ALL_BIAS_ATTRIBUTES = [
 ]
 
 
+@lru_cache(maxsize=4)
 def audit_bias(model_name=PRODUCTION_VARIANT):
     X_test, y_test = load_test_data(model_name)
     raw_test = get_raw_test().reset_index(drop=True)

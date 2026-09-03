@@ -13,8 +13,13 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
-      {/* Three.js animated particle network */}
-      <ParticleBackground />
+      {/* Ambient gradient orbs + faint particle dust behind the light canvas */}
+      <div className="bg-orbs">
+        <span className="orb" />
+        <span className="orb" />
+        <span className="orb" />
+      </div>
+      <ParticleBackground theme="light" />
 
       <Sidebar />
       <main className="app-main" style={{ position: 'relative', zIndex: 1 }}>

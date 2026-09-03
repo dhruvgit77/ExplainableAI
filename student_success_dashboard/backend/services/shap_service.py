@@ -5,13 +5,21 @@ from .model_service import get_model, load_test_data, PRODUCTION_VARIANT
 
 CLASS_NAMES = ["Fail", "At-Risk", "Pass"]
 
+_explainer_cache = {}
+
+
+def _get_explainer(model_name):
+    """TreeExplainer construction walks the whole ensemble - cache per model variant."""
+    if model_name not in _explainer_cache:
+        _explainer_cache[model_name] = shap.TreeExplainer(get_model(model_name))
+    return _explainer_cache[model_name]
+
 
 def get_global_shap(model_name=PRODUCTION_VARIANT):
     """Return mean absolute SHAP values per feature for global interpretation."""
-    model = get_model(model_name)
     X_test, _ = load_test_data(model_name)
 
-    explainer = shap.TreeExplainer(model)
+    explainer = _get_explainer(model_name)
     shap_values = explainer.shap_values(X_test)
 
     # shap_values is list of arrays (one per class) for multiclass
@@ -33,10 +41,9 @@ def get_global_shap(model_name=PRODUCTION_VARIANT):
 
 def get_shap_dependence(model_name=PRODUCTION_VARIANT, top_n=6):
     """Return feature value vs SHAP value data for dependence plots."""
-    model = get_model(model_name)
     X_test, _ = load_test_data(model_name)
 
-    explainer = shap.TreeExplainer(model)
+    explainer = _get_explainer(model_name)
     shap_values = explainer.shap_values(X_test)
 
     if isinstance(shap_values, list):
@@ -84,7 +91,7 @@ def get_local_shap(student_index: int, model_name=PRODUCTION_VARIANT):
 
     student_data = X_test.iloc[[student_index]]
 
-    explainer = shap.TreeExplainer(model)
+    explainer = _get_explainer(model_name)
     shap_obj = explainer(student_data)
 
     pred_idx = int(model.predict(student_data)[0])
@@ -115,7 +122,7 @@ def get_shap_for_input(processed_features: dict, model_name=PRODUCTION_VARIANT):
 
     student_df = pd.DataFrame([processed_features])
 
-    explainer = shap.TreeExplainer(model)
+    explainer = _get_explainer(model_name)
     shap_obj = explainer(student_df)
     expected_values = explainer.expected_value
 

@@ -1,21 +1,12 @@
 const BASE = '/api';
 const AUTH_KEY = 'vs_auth';
 
-function getToken() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
-    return stored?.token || null;
-  } catch {
-    return null;
-  }
-}
-
 async function request(url, options = {}) {
-  const token = getToken();
   const headers = { 'Content-Type': 'application/json', ...options.headers };
-  if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE}${url}`, { headers, ...options });
+  // Session lives in an httpOnly cookie set by the server; the browser
+  // attaches it automatically as long as we ask it to via credentials.
+  const res = await fetch(`${BASE}${url}`, { headers, credentials: 'include', ...options });
 
   if (res.status === 401) {
     localStorage.removeItem(AUTH_KEY);
@@ -45,16 +36,16 @@ export const api = {
   getFeatureWeights: () => request('/models/feature-weights'),
 
   // Explainability
-  getShapGlobal: (modelName = 'Combined') =>
+  getShapGlobal: (modelName = 'Full') =>
     request(`/xai/shap/global?model_name=${modelName}`),
-  getShapDependence: (modelName = 'Combined', topN = 6) =>
+  getShapDependence: (modelName = 'Full', topN = 6) =>
     request(`/xai/shap/dependence?model_name=${modelName}&top_n=${topN}`),
-  getShapLocal: (studentIndex, modelName = 'Combined') =>
+  getShapLocal: (studentIndex, modelName = 'Full') =>
     request('/xai/shap/local', {
       method: 'POST',
       body: JSON.stringify({ student_index: studentIndex, model_name: modelName }),
     }),
-  getLimeLocal: (studentIndex, modelName = 'Combined') =>
+  getLimeLocal: (studentIndex, modelName = 'Full') =>
     request('/xai/lime/local', {
       method: 'POST',
       body: JSON.stringify({ student_index: studentIndex, model_name: modelName }),
@@ -70,7 +61,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  predictBatch: (records, modelName = 'Combined') =>
+  predictBatch: (records, modelName = 'Full') =>
     request('/predict/batch', {
       method: 'POST',
       body: JSON.stringify({ records, model_name: modelName }),
@@ -87,6 +78,7 @@ export const api = {
     request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
   signup: (payload) =>
     request('/auth/signup', { method: 'POST', body: JSON.stringify(payload) }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
   getTeachers: () => request('/auth/teachers'),
   me: () => request('/auth/me'),
 
@@ -98,6 +90,26 @@ export const api = {
   generateReport: (id) =>
     request(`/teacher/students/${id}/generate-report`, { method: 'POST' }),
 
+  // Artifacts — real agentic Tier-3 extraction from uploaded student work
+  getExtractionStatus: () => request('/artifacts/status'),
+  extractArtifacts: async (files, profile) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    if (profile) fd.append('profile', JSON.stringify(profile));
+    // No Content-Type header — the browser sets the multipart boundary itself.
+    const res = await fetch(`${BASE}/artifacts/extract`, {
+      method: 'POST', body: fd, credentials: 'include',
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.detail || `API Error: ${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  },
+
   // Student
   getMyReport: () => request('/student/me/report'),
+
+  // News
+  getNews: () => request('/news/feed'),
 };

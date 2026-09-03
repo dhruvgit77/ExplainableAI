@@ -1,10 +1,18 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..auth import create_access_token, get_current_user, hash_password, verify_password
+from ..auth import (
+    APP_ENV,
+    COOKIE_NAME,
+    TOKEN_EXPIRE_HOURS,
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 from ..database import get_db
 from ..db_models import StudentProfile, User
 
@@ -42,24 +50,41 @@ class SignupRequest(BaseModel):
 
 def _auth_payload(user: User) -> dict:
     return {
-        "access_token": create_access_token(user),
-        "token_type": "bearer",
         "role": user.role,
         "user_id": user.id,
         "name": user.full_name,
     }
 
 
+def _set_auth_cookie(response: Response, user: User) -> None:
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=create_access_token(user),
+        httponly=True,
+        samesite="lax",
+        secure=APP_ENV != "development",
+        max_age=TOKEN_EXPIRE_HOURS * 3600,
+        path="/",
+    )
+
+
 @router.post("/login")
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == req.username).first()
     if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+    _set_auth_cookie(response, user)
     return _auth_payload(user)
 
 
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(COOKIE_NAME, path="/")
+    return {"status": "ok"}
+
+
 @router.post("/signup", status_code=status.HTTP_201_CREATED)
-def signup(req: SignupRequest, db: Session = Depends(get_db)):
+def signup(req: SignupRequest, response: Response, db: Session = Depends(get_db)):
     username = req.username.strip()
     full_name = req.full_name.strip()
     if not username or not req.password or not full_name:
@@ -93,6 +118,7 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(user)
+    _set_auth_cookie(response, user)
     return _auth_payload(user)
 
 

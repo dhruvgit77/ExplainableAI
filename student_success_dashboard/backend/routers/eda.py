@@ -1,7 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from ..auth import require_role
 from ..services import data_service
 
-router = APIRouter(prefix="/api/eda", tags=["EDA"])
+router = APIRouter(prefix="/api/eda", tags=["EDA"], dependencies=[Depends(require_role("teacher"))])
 
 
 @router.get("/summary")
